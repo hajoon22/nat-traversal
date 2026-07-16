@@ -9,7 +9,7 @@
 
 // nat traversal method
 enum nt_method {
-    nt_icmp_unreach, 
+    nt_method_icmp_unreach, 
 };
 
 struct nt_session {
