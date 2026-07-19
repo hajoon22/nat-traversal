@@ -11,6 +11,18 @@
 #include "unreach.h"
 #include "../stun/stun.h"
 
+static int init_keepalive(int s) {
+    int pid = fork();
+    if (pid == 0) {
+        while (1) {
+            send(s, "hello", 5, 0); // keepalive
+            sleep(10);
+        }
+    }
+
+    return pid;
+}
+
 void deinit_nt_icmp_unreach(struct nt_icmp_unreach_context *icmp_unreach) {
     if (icmp_unreach->socket >= 0) {
         close(icmp_unreach->socket);
