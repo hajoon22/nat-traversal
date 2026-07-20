@@ -20,7 +20,7 @@ int main(void) {
     }
 
     struct nt_send_packet spkt;
-    spkt.daddr = ntohl(inet_addr("191.96.235.85")); // dst
+    spkt.daddr = ntohl(inet_addr("1.1.1.1")); // dst
     spkt.dport = 35680;
     spkt.data = "hello!";
     spkt.data_len = 6;
