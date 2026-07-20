@@ -1,5 +1,5 @@
-#ifndef ICMP_H
-#define ICMP_H
+#ifndef ICMP_UNREACH_H
+#define ICMP_UNREACH_H
 
 #include <stddef.h>
 #include <stdint.h>
