@@ -8,7 +8,7 @@ struct nt_session;
 struct nt_read_packet;
 struct nt_send_packet;
 
-struct nt_icmp_unreach_context {
+struct nt_icmp_context {
     int socket; // icmp socket
     struct pollfd pfd;
 
@@ -16,10 +16,10 @@ struct nt_icmp_unreach_context {
     uint16_t mapped_port;
 };
 
-int init_nt_icmp_unreach(struct nt_session *nts);
-void deinit_nt_icmp_unreach(struct nt_icmp_unreach_context *icmp_unreach);
+int init_nt_icmp(struct nt_session *nts);
+void deinit_nt_icmp_context(struct nt_icmp_context *ctx);
 
-int nt_read_icmp_unreach(struct nt_session *nts, struct nt_read_packet *rpkt);
-int nt_send_icmp_unreach(struct nt_session *nts, struct nt_send_packet *spkt);
+int nt_read_icmp(struct nt_session *nts, struct nt_read_packet *pkt);
+int nt_send_icmp(struct nt_session *nts, struct nt_send_packet *pkt);
 
 #endif
