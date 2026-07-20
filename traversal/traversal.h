@@ -6,10 +6,12 @@
 
 #include "icmp/nt.h"
 #include "icmp/unreach.h"
+#include "icmp/exceeded.h"
 
 // nat traversal method
 enum nt_method {
     nt_method_icmp_unreach, 
+    nt_method_icmp_exceeded,
 };
 
 struct nt_session {
@@ -21,7 +23,7 @@ struct nt_session {
 
     enum nt_method method;
     union {
-        struct nt_icmp_unreach_context icmp_unreach;
+        struct nt_icmp_context icmp_ctx;
     };
 };
 
@@ -29,6 +31,7 @@ struct nt_read_packet {
     enum nt_method method;
     union {
         struct icmp_unreach icmpun;
+        struct icmp_exceeded icmptime;
     };
 };
 
