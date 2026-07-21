@@ -8,10 +8,15 @@
 #include "icmp/unreach.h"
 #include "icmp/exceeded.h"
 
+#include "spoof/nt.h"
+#include "spoof/udp.h"
+
 // nat traversal method
 enum nt_method {
     nt_method_icmp_unreach, 
     nt_method_icmp_exceeded,
+
+    nt_method_spoof_udp,
 };
 
 struct nt_session {
@@ -23,6 +28,7 @@ struct nt_session {
 
     enum nt_method method;
     union {
+        struct nt_spoof_context spoof_ctx;
         struct nt_icmp_context icmp_ctx;
     };
 };
@@ -32,6 +38,7 @@ struct nt_read_packet {
     union {
         struct icmp_unreach icmpun;
         struct icmp_exceeded icmptime;
+        struct spoof_udp spoofudp;
     };
 };
 
