@@ -1,0 +1,23 @@
+#ifndef SPOOF_UDP_H
+#define SPOOF_UDP_H
+
+#include <stdint.h>
+#include <stddef.h>
+#include <netinet/ip.h>
+
+struct nt_session;
+struct nt_read_packet;
+struct nt_send_packet;
+
+struct spoof_udp {
+    struct iphdr iph;
+    uint8_t *data;
+    size_t data_len;
+};
+
+void deinit_spoof_udp(struct spoof_udp *spoofudp);
+
+int read_spoof_udp(struct nt_session *nts, struct nt_read_packet *pkt);
+int send_spoof_udp(struct nt_session *nts, struct nt_send_packet *pkt);
+
+#endif
