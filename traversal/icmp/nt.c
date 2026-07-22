@@ -5,12 +5,12 @@
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 
-#include "../traversal.h"
-#include "nt.h"
-
-#include "unreach.h"
-#include "exceeded.h"
 #include "../stun/stun.h"
+#include "../traversal.h"
+
+#include "nt.h"
+#include "unreach/unreach.h"
+#include "exceeded/exceeded.h"
 
 static int init_keepalive(int s) {
     int pid = fork();
@@ -64,17 +64,11 @@ int nt_read_icmp(struct nt_session *nts, struct nt_read_packet *pkt) {
     int n = poll(&nts->icmp_ctx.pfd, 1, 1000);
     if (n > 0) {
         switch (nts->method) {
-            case nt_method_icmp_unreach: {
-                int n = read_icmp_unreach(nts->icmp_ctx.socket, nts->stun_addr, &pkt->icmpun);
-                pkt->method = nts->method;
-                return n;
-            }
+            case nt_method_icmp_unreach:
+                return read_icmp_unreach(nts, pkt);
 
-            case nt_method_icmp_exceeded: {
-                int n = read_icmp_exceeded(nts->icmp_ctx.socket, nts->stun_addr, &pkt->icmptime);
-                pkt->method = nts->method;
-                return n;
-            }
+            case nt_method_icmp_exceeded:
+                return read_icmp_exceeded(nts, pkt);
         }
     }
 
@@ -84,17 +78,9 @@ int nt_read_icmp(struct nt_session *nts, struct nt_read_packet *pkt) {
 int nt_send_icmp(struct nt_session *nts, struct nt_send_packet *pkt) {
     switch (nts->method) {
         case nt_method_icmp_unreach:
-            return send_icmp_unreach(
-                nts->icmp_ctx.socket, 
-                pkt->daddr, pkt->dport, 
-                nts->stun_addr, nts->stun_port, 
-                pkt->data, pkt->data_len);
+            return send_icmp_unreach(nts, pkt);
         case nt_method_icmp_exceeded:
-            return send_icmp_exceeded(
-                nts->icmp_ctx.socket, 
-                pkt->daddr, pkt->dport, 
-                nts->stun_addr, nts->stun_port, 
-                pkt->data, pkt->data_len);        
+            return send_icmp_exceeded(nts, pkt);      
     }
 
     return -1;
