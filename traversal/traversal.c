@@ -5,11 +5,11 @@
 #include "traversal.h"
 
 #include "icmp/nt.h"
-#include "icmp/unreach.h"
-#include "icmp/exceeded.h"
+#include "icmp/unreach/unreach.h"
+#include "icmp/exceeded/exceeded.h"
 
 #include "spoof/nt.h"
-#include "spoof/udp.h"
+#include "spoof/udp/udp.h"
 
 int init_nt_session(struct nt_session *nts) {
     switch (nts->method) {
