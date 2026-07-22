@@ -7,8 +7,8 @@
 
 #include "../traversal.h"
 #include "../stun/stun.h"
+#include "udp/udp.h"
 #include "nt.h"
-#include "udp.h"
 
 static int init_keepalive(int s) {
     int pid = fork();
