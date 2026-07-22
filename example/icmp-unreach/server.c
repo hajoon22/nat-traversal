@@ -12,7 +12,7 @@ int main(void) {
     struct nt_session nts;
     nts.stun_addr = ntohl(inet_addr("74.125.250.129"));
     nts.stun_port = 19302;
-    nts.method = nt_method_icmp_unreach;
+    nts.method = nt_method_icmp_unreach_udp;
 
     if (init_nt_session(&nts) < 0) {
         printf("init nt session error\n");
