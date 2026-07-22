@@ -19,17 +19,17 @@ traversal.o: traversal/traversal.c traversal/traversal.h
 stun.o: traversal/stun/stun.c traversal/stun/stun.h
 	gcc -c traversal/stun/stun.c -o stun.o
 
-unreach.o: traversal/icmp/unreach.c traversal/icmp/unreach.h
-	gcc -c traversal/icmp/unreach.c -o unreach.o
-exceeded.o: traversal/icmp/exceeded.c traversal/icmp/exceeded.h
-	gcc -c traversal/icmp/exceeded.c -o exceeded.o
+unreach.o: traversal/icmp/unreach/unreach.c traversal/icmp/unreach/unreach.h
+	gcc -c traversal/icmp/unreach/unreach.c -o unreach.o
+exceeded.o: traversal/icmp/exceeded/exceeded.c traversal/icmp/exceeded/exceeded.h
+	gcc -c traversal/icmp/exceeded/exceeded.c -o exceeded.o
 icmp-nt.o: traversal/icmp/nt.c traversal/icmp/nt.h
 	gcc -c traversal/icmp/nt.c -o icmp-nt.o
 
 ipip.o: traversal/spoof/ipip/ipip.c traversal/spoof/ipip/ipip.h
 	gcc -c traversal/spoof/ipip/ipip.c -o ipip.o
-spoofudp.o: traversal/spoof/udp.c traversal/spoof/udp.h
-	gcc -c traversal/spoof/udp.c -o spoofudp.o
+spoofudp.o: traversal/spoof/udp/udp.c traversal/spoof/udp/udp.h
+	gcc -c traversal/spoof/udp/udp.c -o spoofudp.o
 spoof-nt.o: traversal/spoof/nt.c traversal/spoof/nt.h
 	gcc -c traversal/spoof/nt.c -o spoof-nt.o
 
