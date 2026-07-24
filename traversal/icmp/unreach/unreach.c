@@ -15,61 +15,164 @@ void deinit_icmp_unreach(struct icmp_unreach *icmpunreach) {
     free(icmpunreach->data);
 }
 
-static ssize_t build_icmp_unreach(uint8_t **buf, struct iphdr *iph, struct udphdr *udph, uint8_t *data, size_t len) {
-    *buf = malloc(8+iph->ihl*4+sizeof(struct udphdr)+len);
+static ssize_t build_icmp_unreach(uint8_t **buf, uint8_t *inner_packet, size_t inner_len) {
+    *buf = malloc(8+inner_len);
     if (!*buf) return -1;
 
     struct icmphdr *icmph = (struct icmphdr *)*buf;
     memset(icmph, 0, sizeof(*icmph));
     icmph->type = ICMP_DEST_UNREACH;
     icmph->code = ICMP_NET_UNREACH;
-    memcpy(*buf+8, iph, iph->ihl*4); // ip header
-    memcpy(*buf+8+iph->ihl*4, udph, sizeof(struct udphdr));
-    memcpy(*buf+8+iph->ihl*4+sizeof(struct udphdr), data, len);
+    memcpy(*buf+8, inner_packet, inner_len);
 
-    ((struct icmphdr *)(*buf))->checksum = htons(checksum(*buf, 8+iph->ihl*4+sizeof(struct udphdr)+len));
-
-    return 8+iph->ihl*4+sizeof(struct udphdr)+len;
+    ((struct icmphdr *)(*buf))->checksum = htons(checksum(*buf, 8+inner_len));
+    return 8+inner_len;
 }
 
-int send_icmp_unreach(struct nt_session *nts, struct nt_send_packet *pkt) {
-    struct iphdr iph;
-    struct udphdr udph;
-
-    memset(&iph, 0, sizeof(iph));
-    memset(&udph, 0, sizeof(udph));
+static ssize_t build_inner_icmp(struct nt_session *nts, struct nt_send_packet *pkt, uint8_t **buf) {
+    struct iphdr iph = {0};
+    struct icmphdr icmph = {0};
 
     iph.version = 4; // ipv4
     iph.ihl = 5;
-    iph.tos = 0;
-    iph.tot_len = htons(sizeof(struct iphdr)+sizeof(struct udphdr)+pkt->data_len);
-    iph.id = 0;
-    iph.frag_off = 0;
+    iph.tot_len = htons(sizeof(iph)+sizeof(icmph)+pkt->data_len);
+    iph.ttl = 64;
+    iph.protocol = 1; // icmp echo
+    iph.saddr = htonl(pkt->daddr);
+    iph.daddr = htonl(nts->icmp_ctx.addr);
+    iph.check = htons(checksum((uint8_t *)&iph, sizeof(iph)));
+
+    icmph.type = ICMP_ECHO;
+    icmph.un.echo.id = htons(nts->icmp_ctx.id);
+    icmph.un.echo.sequence = htons(nts->icmp_ctx.seq); 
+
+    size_t inner_len = sizeof(iph)+sizeof(icmph)+pkt->data_len;
+    *buf = malloc(inner_len);
+    if (!*buf) return -1;
+
+    memcpy(*buf, &iph, sizeof(iph));
+    memcpy((*buf)+sizeof(iph), &icmph, sizeof(icmph));
+    memcpy((*buf)+sizeof(iph)+sizeof(icmph), pkt->data, pkt->data_len);
+
+    return inner_len;
+}
+
+static ssize_t build_inner_udp(struct nt_session *nts, struct nt_send_packet *pkt, uint8_t **buf) {
+    struct iphdr iph = {0};
+    struct udphdr udph = {0};
+
+    iph.version = 4; // ipv4
+    iph.ihl = 5;
+    iph.tot_len = htons(sizeof(iph)+sizeof(udph)+pkt->data_len);
     iph.ttl = 64;
     iph.protocol = 17; // udp
-    iph.check = 0;
     iph.saddr = htonl(pkt->daddr);
     iph.daddr = htonl(nts->stun_addr);
     iph.check = htons(checksum((uint8_t *)&iph, sizeof(iph)));
 
     udph.source = htons(pkt->dport);
     udph.dest   = htons(nts->stun_port);
-    udph.len    = htons(sizeof(struct udphdr)+pkt->data_len);
-    udph.check  = 0;
+    udph.len    = htons(sizeof(udph)+pkt->data_len);
 
+    size_t inner_len = sizeof(iph)+sizeof(udph)+pkt->data_len;
+    *buf = malloc(inner_len);
+    if (!*buf ) return -1;
+
+    memcpy(*buf, &iph, sizeof(iph));
+    memcpy((*buf)+sizeof(iph), &udph, sizeof(udph));
+    memcpy((*buf)+sizeof(iph)+sizeof(udph), pkt->data, pkt->data_len);
+
+    return inner_len;
+}
+
+int send_icmp_unreach(struct nt_session *nts, struct nt_send_packet *pkt) {
+    uint8_t *inner_packet = NULL;
+    size_t inner_len = 0;
+
+    switch (nts->method) {
+        case nt_method_icmp_unreach_udp: {
+            ssize_t n = build_inner_udp(nts, pkt, &inner_packet);
+            if (n < 0) return n;
+
+            inner_len = (size_t)n;
+            break;
+        }
+
+        case nt_method_icmp_unreach_icmp: {
+            ssize_t n = build_inner_icmp(nts, pkt, &inner_packet);
+            if (n < 0) return n;
+
+            inner_len = (size_t)n;
+            break;
+        }
+        
+        default: return -1;
+    }
+    
     uint8_t *buf = NULL;
-    ssize_t size = build_icmp_unreach(&buf, &iph, &udph, pkt->data, pkt->data_len);
-    if (size < 0) return size;
+    ssize_t len = build_icmp_unreach(&buf, inner_packet, inner_len);
+    if (len < 0) return len;
 
     struct sockaddr_in sin;
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = htonl(pkt->daddr);
 
-    int n = sendto(nts->icmp_ctx.socket, buf, size, 0, (struct sockaddr *)&sin, sizeof(sin));
+    int n = sendto(nts->icmp_ctx.socket, buf, len, 0, (struct sockaddr *)&sin, sizeof(sin));
     free(buf);
-    if (n != size) {
+    free(inner_packet);
+    if (n != len) {
         return -1;
     }
+
+    return 0;
+}
+
+static int parse_inner_udp(struct nt_session *nts, struct nt_read_packet *pkt, uint8_t *buf) {
+    struct iphdr *iph = (struct iphdr *)buf;
+    if (ntohl(iph->daddr) != nts->stun_addr) {
+        return -1;
+    }
+
+    uint8_t *payload = (uint8_t *)buf+iph->ihl*4+sizeof(struct udphdr);
+    ssize_t payload_len = ntohs(iph->tot_len)-sizeof(struct udphdr)-iph->ihl*4;
+    if (payload_len < 0) return -1;
+    if (payload_len > MAX_DATA_BUFFER) {
+        payload_len = MAX_DATA_BUFFER;
+    }
+
+    uint8_t *data = malloc(payload_len);
+    if (!data) return -1;
+
+    memcpy(data, payload, payload_len);
+    pkt->method = nts->method;
+    pkt->icmpun.iph = *iph;
+    pkt->icmpun.data = data;
+    pkt->icmpun.data_len = payload_len;
+
+    return 0;
+}
+
+static int parse_inner_icmp(struct nt_session *nts, struct nt_read_packet *pkt, uint8_t *buf) {
+    struct iphdr *iph = (struct iphdr *)buf;
+    if (ntohl(iph->daddr) != nts->icmp_ctx.addr) {
+        return -1;
+    }
+
+    uint8_t *payload = (uint8_t *)buf+iph->ihl*4+sizeof(struct icmphdr);
+    ssize_t payload_len = ntohs(iph->tot_len)-sizeof(struct icmphdr)-iph->ihl*4;
+    if (payload_len < 0) return -1;
+    if (payload_len > MAX_DATA_BUFFER) {
+        payload_len = MAX_DATA_BUFFER;
+    }
+
+    uint8_t *data = malloc(payload_len);
+    if (!data) return -1;
+
+    memcpy(data, payload, payload_len);
+    pkt->method = nts->method;
+    pkt->icmpun.iph = *iph;
+    pkt->icmpun.data = data;
+    pkt->icmpun.data_len = payload_len;
 
     return 0;
 }
@@ -90,37 +193,15 @@ int read_icmp_unreach(struct nt_session *nts, struct nt_read_packet *pkt) {
 
     struct icmphdr *icmph = (struct icmphdr*)(buf+(iph->ihl*4));
     if (icmph->type == ICMP_DEST_UNREACH) {
-        struct iphdr *in_iph = (struct iphdr *)(buf+iph->ihl*4+sizeof(struct icmphdr));
-        if (ntohl(in_iph->daddr) != nts->stun_addr) return -1;
+        switch (nts->method) {
+            case nt_method_icmp_unreach_udp: {
+                return parse_inner_udp(nts, pkt, buf+iph->ihl*4+sizeof(struct icmphdr));
+            }
 
-        uint8_t *payload = (uint8_t *)icmph+sizeof(struct icmphdr)+28;
-        int len = ntohs(iph->tot_len)-(sizeof(struct icmphdr)+iph->ihl*4+28);
-        if (len <= 0) {
-            return -1;
+            case nt_method_icmp_unreach_icmp: {
+                return parse_inner_icmp(nts, pkt, buf+iph->ihl*4+sizeof(struct icmphdr));
+            }
         }
-
-        if (len > MAX_DATA_BUFFER) {
-            len = MAX_DATA_BUFFER;
-        }
-
-        // allocate heap buffer for payload
-        uint8_t *data = calloc(1, len);
-        if (!data) {
-            return -1;
-        }
-
-        // copy stack to heap
-        memcpy(data, payload, len);
-
-        // set results
-        pkt->method = nts->method;
-        pkt->icmptime.iph = *iph;
-        pkt->icmptime.icmph = *icmph;
-
-        pkt->icmptime.data = data;
-        pkt->icmptime.data_len = len;
-
-        return 0;
     }
 
     return -1;
