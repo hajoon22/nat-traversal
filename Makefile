@@ -1,10 +1,17 @@
-example-icmp-unreach: example-unreach-client.o example-unreach-server.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o unreach-client example-unreach-client.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o unreach-server example-unreach-server.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-example-unreach-client.o: example/icmp-unreach/client.c
-	gcc -c example/icmp-unreach/client.c -o example-unreach-client.o
-example-unreach-server.o: example/icmp-unreach/server.c
-	gcc -c example/icmp-unreach/server.c -o example-unreach-server.o
+example-icmp-unreach: example-unreach-client-udp.o example-unreach-server-udp.o example-unreach-client-icmp.o example-unreach-server-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+	gcc -o unreach-udp-client example-unreach-client-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+	gcc -o unreach-udp-server example-unreach-server-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+	gcc -o unreach-icmp-client example-unreach-client-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+	gcc -o unreach-icmp-server example-unreach-server-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+
+example-unreach-client-udp.o: example/icmp-unreach/udp/client.c
+	gcc -c example/icmp-unreach/udp/client.c -o example-unreach-client-udp.o
+example-unreach-server-udp.o: example/icmp-unreach/udp/server.c
+	gcc -c example/icmp-unreach/udp/server.c -o example-unreach-server-udp.o
+example-unreach-client-icmp.o: example/icmp-unreach/icmp/client.c
+	gcc -c example/icmp-unreach/icmp/client.c -o example-unreach-client-icmp.o
+example-unreach-server-icmp.o: example/icmp-unreach/icmp/server.c
+	gcc -c example/icmp-unreach/icmp/server.c -o example-unreach-server-icmp.o
 
 example-icmp-exceeded: example-exceeded-client.o example-exceeded-server.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
 	gcc -o exceeded-client example-exceeded-client.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
@@ -14,6 +21,13 @@ example-exceeded-client.o: example/icmp-exceeded/client.c
 example-exceeded-server.o: example/icmp-exceeded/server.c
 	gcc -c example/icmp-exceeded/server.c -o example-exceeded-server.o
 
+example-spoof-udp: example-spoof-udp-server.o example-spoof-udp-client.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+	gcc -o spoof-udp-client example-spoof-udp-client.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+	gcc -o spoof-udp-server example-spoof-udp-server.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+example-spoof-udp-server.o: example/spoof-udp/server.c
+	gcc -c example/spoof-udp/server.c -o example-spoof-udp-server.o
+example-spoof-udp-client.o: example/spoof-udp/client.c
+	gcc -c example/spoof-udp/client.c -o example-spoof-udp-client.o
 traversal.o: traversal/traversal.c traversal/traversal.h
 	gcc -c traversal/traversal.c -o traversal.o
 stun.o: traversal/stun/stun.c traversal/stun/stun.h
@@ -38,3 +52,7 @@ checksum.o: traversal/checksum/checksum.c traversal/checksum/checksum.h
 
 clean:
 	rm -rf *.o
+	rm -rf spoof-udp-client spoof-udp-server
+	rm -rf exceeded-client exceeded-server
+	rm -rf unreach-icmp-server unreach-icmp-client
+	rm -rf unreach-udp-server unreach-udp-client
