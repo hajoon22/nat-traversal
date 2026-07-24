@@ -15,6 +15,7 @@ int init_nt_session(struct nt_session *nts) {
     switch (nts->method) {
         case nt_method_icmp_exceeded_udp:
         case nt_method_icmp_unreach_udp:
+        case nt_method_icmp_unreach_icmp:
             return init_nt_icmp(nts);
         case nt_method_spoof_udp:
             return init_nt_spoof(nts);
@@ -36,6 +37,7 @@ void deinit_nt_session(struct nt_session *nts) {
     switch (nts->method) {
         case nt_method_icmp_unreach_udp:
         case nt_method_icmp_exceeded_udp:
+        case nt_method_icmp_unreach_icmp:
             return deinit_nt_icmp_context(&nts->icmp_ctx);
         case nt_method_spoof_udp:
             return deinit_nt_spoof_context(&nts->spoof_ctx);
@@ -46,6 +48,7 @@ int nt_read(struct nt_session *nts, struct nt_read_packet *pkt) {
     switch (nts->method) {
         case nt_method_icmp_exceeded_udp:
         case nt_method_icmp_unreach_udp:
+        case nt_method_icmp_unreach_icmp:
             return nt_read_icmp(nts, pkt);
         case nt_method_spoof_udp:
             return nt_read_spoof(nts, pkt);
@@ -58,6 +61,7 @@ int nt_send(struct nt_session *nts, struct nt_send_packet *pkt) {
     switch (nts->method) {
         case nt_method_icmp_exceeded_udp:
         case nt_method_icmp_unreach_udp:
+        case nt_method_icmp_unreach_icmp:
             return nt_send_icmp(nts, pkt);
         case nt_method_spoof_udp:
             return nt_send_spoof(nts, pkt);
@@ -68,6 +72,7 @@ int nt_send(struct nt_session *nts, struct nt_send_packet *pkt) {
 
 void deinit_nt_read_packet(struct nt_read_packet *pkt) {
     switch (pkt->method) {
+        case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_unreach_udp:
             return deinit_icmp_unreach(&pkt->icmpun);
         case nt_method_icmp_exceeded_udp:
