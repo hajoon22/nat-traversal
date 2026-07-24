@@ -14,7 +14,6 @@ struct nt_send_packet;
 
 struct icmp_unreach {
     struct iphdr iph;
-    struct icmphdr icmph;
 
     uint8_t *data;
     size_t data_len;
