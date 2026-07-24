@@ -14,6 +14,7 @@
 // nat traversal method
 enum nt_method {
     nt_method_icmp_unreach_udp, 
+    nt_method_icmp_unreach_icmp,
     nt_method_icmp_exceeded_udp,
 
     nt_method_spoof_udp,
