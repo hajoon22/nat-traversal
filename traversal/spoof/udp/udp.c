@@ -10,7 +10,7 @@
 
 #include "../../traversal.h"
 #include "../../checksum/checksum.h"
-#include "../ipip/ipip.h"
+#include "../../ipip/ipip.h"
 #include "udp.h"
 
 struct udp_pseudo {
@@ -49,43 +49,56 @@ int read_spoof_udp(struct nt_session *nts, struct nt_read_packet *pkt) {
 }
 
 int send_spoof_udp(struct nt_session *nts, struct nt_send_packet *pkt) {
-    struct iphdr inner_iph = {0};
-    inner_iph.version = 4;
-    inner_iph.ihl = 5;
-    inner_iph.tot_len = htons(sizeof(struct iphdr)+sizeof(struct udphdr)+pkt->data_len);
-    inner_iph.ttl = 64;
-    inner_iph.protocol = IPPROTO_UDP;
-    inner_iph.saddr = htonl(nts->stun_addr);
-    inner_iph.daddr = htonl(pkt->daddr);
-    inner_iph.check = htons(checksum((uint8_t *)&inner_iph, sizeof(inner_iph)));
+    size_t inner_len = sizeof(struct iphdr)+sizeof(struct udphdr)+pkt->data_len;
+    
+    // inner packet buffer
+    uint8_t *buf = calloc(inner_len+sizeof(struct udp_pseudo), sizeof(uint8_t));
+    if (!buf) return -1;
+    
+    size_t offset = 0;
 
-    struct udphdr inner_udph = {0};
-    inner_udph.source = htons(nts->stun_port);
-    inner_udph.dest   = htons(pkt->dport);
-    inner_udph.len    = htons(sizeof(struct udphdr)+pkt->data_len);
+    // inner ip header
+    struct iphdr *iph = (struct iphdr *)buf;
+    offset += sizeof(struct iphdr);
 
-    struct udp_pseudo pseudo = {0};
-    pseudo.saddr = inner_iph.saddr;
-    pseudo.daddr = inner_iph.daddr;
-    pseudo.protocol = IPPROTO_UDP;
-    pseudo.udp_len = inner_udph.len;
+    iph->version = 4;
+    iph->ihl = 5;
+    iph->tot_len = htons(inner_len);
+    iph->ttl = 64;
+    iph->protocol = IPPROTO_UDP;
+    iph->saddr = htonl(nts->stun_addr);
+    iph->daddr = htonl(pkt->daddr);
+    iph->check = htons(checksum(buf, sizeof(struct iphdr)));
+    
+    // inner udp header
+    struct udphdr *udph = (struct udphdr *)(buf+offset);
+    offset += sizeof(struct udphdr);
 
-    uint8_t *udp = malloc(sizeof(struct udphdr)+sizeof(struct udp_pseudo)+pkt->data_len);
-    if (!udp) return -1;
+    udph->source = htons(nts->stun_port);
+    udph->dest   = htons(pkt->dport);
+    udph->len    = htons(sizeof(struct udphdr)+pkt->data_len);
 
-    memcpy(udp, &pseudo, sizeof(struct udp_pseudo));
-    memcpy(udp+sizeof(struct udp_pseudo), &inner_udph, sizeof(struct udphdr));
-    memcpy(udp+sizeof(struct udphdr)+sizeof(struct udp_pseudo), pkt->data, pkt->data_len);
+    struct udp_pseudo *pseudo = (struct udp_pseudo *)(buf+offset);
+    pseudo->saddr = iph->saddr;
+    pseudo->daddr = iph->daddr;
+    pseudo->protocol = iph->protocol;
+    pseudo->udp_len = udph->len;
 
-    inner_udph.check = htons(checksum(udp, sizeof(struct udphdr)+sizeof(struct udp_pseudo)+pkt->data_len));
-    free(udp);
+    memcpy(buf+offset+sizeof(struct udp_pseudo), pkt->data, pkt->data_len);
+    udph->check = htons(checksum(buf, inner_len));
 
-    return send_ipip(
+    // overwrite pseudo with data
+    memcpy(buf+offset, pkt->data, pkt->data_len);
+
+    int send_ipip(int s, uint32_t src, uint32_t dst, uint8_t *inner, size_t inner_len);
+
+    int ret = send_ipip(
         nts->spoof_ctx.socket,
-        nts->spoof_ctx.pub_addr, 
-        nts->spoof_ctx.relay_addr, 
-        &inner_iph, 
-        &inner_udph, 
-        pkt->data, 
-        pkt->data_len);
+        nts->spoof_ctx.pub_addr,
+        nts->spoof_ctx.relay_addr,
+        buf,
+        inner_len);
+    
+    free(buf);
+    return ret;
 }
