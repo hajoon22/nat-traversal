@@ -89,6 +89,7 @@ static int init_nt_icmp_icmp(struct nt_session *nts) {
 
 int init_nt_icmp(struct nt_session *nts) {
     switch (nts->method) {
+        case nt_method_icmp_exceeded_udp:
         case nt_method_icmp_unreach_udp: {
             if (init_nt_icmp_udp(nts) < 0) {
                 return -1;
@@ -97,6 +98,7 @@ int init_nt_icmp(struct nt_session *nts) {
             break;
         }
 
+        case nt_method_icmp_exceeded_icmp:
         case nt_method_icmp_unreach_icmp: {
             nts->icmp_ctx.id = ECHO_ID;
             nts->icmp_ctx.seq = ECHO_SEQ;
@@ -109,7 +111,8 @@ int init_nt_icmp(struct nt_session *nts) {
             break;
         }
 
-        default: return -1;
+        default: 
+            return -1;
     }
 
     nts->icmp_ctx.socket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
@@ -134,6 +137,7 @@ int nt_read_icmp(struct nt_session *nts, struct nt_read_packet *pkt) {
             case nt_method_icmp_unreach_udp:
                 return read_icmp_unreach(nts, pkt);
 
+            case nt_method_icmp_exceeded_icmp:
             case nt_method_icmp_exceeded_udp:
                 return read_icmp_exceeded(nts, pkt);
         }
@@ -147,6 +151,8 @@ int nt_send_icmp(struct nt_session *nts, struct nt_send_packet *pkt) {
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_unreach_udp:
             return send_icmp_unreach(nts, pkt);
+
+        case nt_method_icmp_exceeded_icmp:
         case nt_method_icmp_exceeded_udp:
             return send_icmp_exceeded(nts, pkt);      
     }
