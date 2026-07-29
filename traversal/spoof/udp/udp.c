@@ -85,12 +85,10 @@ int send_spoof_udp(struct nt_session *nts, struct nt_send_packet *pkt) {
     pseudo->udp_len = udph->len;
 
     memcpy(buf+offset+sizeof(struct udp_pseudo), pkt->data, pkt->data_len);
-    udph->check = htons(checksum(buf, inner_len));
+    udph->check = htons(checksum(buf+sizeof(struct iphdr), inner_len-sizeof(struct iphdr)+sizeof(struct udp_pseudo)));
 
     // overwrite pseudo with data
     memcpy(buf+offset, pkt->data, pkt->data_len);
-
-    int send_ipip(int s, uint32_t src, uint32_t dst, uint8_t *inner, size_t inner_len);
 
     int ret = send_ipip(
         nts->spoof_ctx.socket,
