@@ -1,8 +1,8 @@
-example-icmp-unreach: example-unreach-client-udp.o example-unreach-server-udp.o example-unreach-client-icmp.o example-unreach-server-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o unreach-udp-client example-unreach-client-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o unreach-udp-server example-unreach-server-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o unreach-icmp-client example-unreach-client-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o unreach-icmp-server example-unreach-server-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+example-icmp-unreach: example-unreach-client-udp.o example-unreach-server-udp.o example-unreach-client-icmp.o example-unreach-server-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
+	gcc -o unreach-udp-client example-unreach-client-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
+	gcc -o unreach-udp-server example-unreach-server-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
+	gcc -o unreach-icmp-client example-unreach-client-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
+	gcc -o unreach-icmp-server example-unreach-server-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
 
 example-unreach-client-udp.o: example/icmp-unreach/udp/client.c
 	gcc -c example/icmp-unreach/udp/client.c -o example-unreach-client-udp.o
@@ -40,10 +40,12 @@ exceeded.o: traversal/icmp/exceeded/exceeded.c traversal/icmp/exceeded/exceeded.
 icmp-nt.o: traversal/icmp/nt.c traversal/icmp/nt.h
 	gcc -c traversal/icmp/nt.c -o icmp-nt.o
 
-ipip.o: traversal/spoof/ipip/ipip.c traversal/spoof/ipip/ipip.h
-	gcc -c traversal/spoof/ipip/ipip.c -o ipip.o
+ipip.o: traversal/ipip/ipip.c traversal/ipip/ipip.h
+	gcc -c traversal/ipip/ipip.c -o ipip.o
 spoofudp.o: traversal/spoof/udp/udp.c traversal/spoof/udp/udp.h
 	gcc -c traversal/spoof/udp/udp.c -o spoofudp.o
+spoofecho.o: traversal/spoof/echo/echo.c traversal/spoof/echo/echo.h
+	gcc -c traversal/spoof/echo/echo.c -o spoofecho.o
 spoof-nt.o: traversal/spoof/nt.c traversal/spoof/nt.h
 	gcc -c traversal/spoof/nt.c -o spoof-nt.o
 
