@@ -10,6 +10,7 @@
 
 #include "spoof/nt.h"
 #include "spoof/udp/udp.h"
+#include "spoof/echo/echo.h"
 
 // nat traversal method
 enum nt_method {
@@ -18,7 +19,8 @@ enum nt_method {
     nt_method_icmp_exceeded_udp,
     nt_method_icmp_exceeded_icmp,
 
-    nt_method_spoof_udp,
+    nt_method_spoof_udp_direct,
+    nt_method_spoof_echo_reflection,
 };
 
 struct nt_session {
@@ -41,6 +43,7 @@ struct nt_read_packet {
         struct icmp_unreach icmpun;
         struct icmp_exceeded icmptime;
         struct spoof_udp spoofudp;
+        struct spoof_echo spoofecho;
     };
 };
 
