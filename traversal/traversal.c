@@ -10,6 +10,7 @@
 
 #include "spoof/nt.h"
 #include "spoof/udp/udp.h"
+#include "spoof/echo/echo.h"
 
 int init_nt_session(struct nt_session *nts) {
     switch (nts->method) {
@@ -18,7 +19,9 @@ int init_nt_session(struct nt_session *nts) {
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_exceeded_icmp:
             return init_nt_icmp(nts);
-        case nt_method_spoof_udp:
+            
+        case nt_method_spoof_udp_direct:
+        case nt_method_spoof_echo_reflection:
             return init_nt_spoof(nts);
     }
 
@@ -41,7 +44,9 @@ void deinit_nt_session(struct nt_session *nts) {
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_exceeded_icmp:
             return deinit_nt_icmp_context(&nts->icmp_ctx);
-        case nt_method_spoof_udp:
+
+        case nt_method_spoof_udp_direct:
+        case nt_method_spoof_echo_reflection:
             return deinit_nt_spoof_context(&nts->spoof_ctx);
     }
 }
@@ -53,7 +58,9 @@ int nt_read(struct nt_session *nts, struct nt_read_packet *pkt) {
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_exceeded_icmp:
             return nt_read_icmp(nts, pkt);
-        case nt_method_spoof_udp:
+
+        case nt_method_spoof_udp_direct:
+        case nt_method_spoof_echo_reflection:
             return nt_read_spoof(nts, pkt);
     }
 
@@ -67,7 +74,9 @@ int nt_send(struct nt_session *nts, struct nt_send_packet *pkt) {
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_exceeded_icmp:
             return nt_send_icmp(nts, pkt);
-        case nt_method_spoof_udp:
+
+        case nt_method_spoof_udp_direct:
+        case nt_method_spoof_echo_reflection:
             return nt_send_spoof(nts, pkt);
     }
 
@@ -82,7 +91,10 @@ void deinit_nt_read_packet(struct nt_read_packet *pkt) {
         case nt_method_icmp_exceeded_icmp:
         case nt_method_icmp_exceeded_udp:
             return deinit_icmp_exceeded(&pkt->icmptime);
-        case nt_method_spoof_udp:
+
+        case nt_method_spoof_udp_direct:
             return deinit_spoof_udp(&pkt->spoofudp);
+        case nt_method_spoof_echo_reflection:
+            return deinit_spoof_echo(&pkt->spoofecho);
     }
 }
