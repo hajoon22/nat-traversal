@@ -6,14 +6,11 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "exceeded.h"
+#include "../nt.h"
+
 #include "../../traversal.h"
 #include "../../checksum/checksum.h"
-#include "exceeded.h"
-
-void deinit_icmp_exceeded(struct icmp_exceeded *icmptime) {
-    if (!icmptime) return;
-    free(icmptime->data);
-}
 
 static ssize_t build_icmp_exceeded(uint8_t **buf, uint8_t *inner, size_t inner_len) {
     size_t total_len = sizeof(struct icmphdr)+inner_len;
@@ -90,15 +87,15 @@ static ssize_t build_inner_icmp(struct nt_session *nts, struct nt_send_packet *p
     iph->ttl = 64;
     iph->protocol = 1; // icmp echo
     iph->saddr = htonl(pkt->daddr);
-    iph->daddr = htonl(nts->icmp_ctx.addr);
+    iph->daddr = htonl(nts->icmp_ctx->addr);
     iph->check = 0;
 
     struct icmphdr *icmph = (struct icmphdr *)(*buf+offset);
     offset += sizeof(struct icmphdr);
 
     icmph->type = ICMP_ECHO;
-    icmph->un.echo.id = htons(nts->icmp_ctx.id);
-    icmph->un.echo.sequence = htons(nts->icmp_ctx.seq); 
+    icmph->un.echo.id = htons(nts->icmp_ctx->id);
+    icmph->un.echo.sequence = htons(nts->icmp_ctx->seq); 
 
     memcpy(*buf+offset, pkt->data, pkt->data_len);
 
@@ -145,7 +142,7 @@ int send_icmp_exceeded(struct nt_session *nts, struct nt_send_packet *pkt) {
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = htonl(pkt->daddr);
 
-    ssize_t n = sendto(nts->icmp_ctx.socket, buf, ret, 0, (struct sockaddr *)&sin, sizeof(sin));
+    ssize_t n = sendto(nts->icmp_ctx->socket, buf, ret, 0, (struct sockaddr *)&sin, sizeof(sin));
     free(buf);
     if (n != ret) {
         return -1;
@@ -160,53 +157,61 @@ static int parse_inner_udp(struct nt_session *nts, struct nt_read_packet *pkt, u
         return -1;
     }
 
-    uint8_t *payload = (uint8_t *)buf+iph->ihl*4+sizeof(struct udphdr);
-    ssize_t payload_len = ntohs(iph->tot_len)-sizeof(struct udphdr)-iph->ihl*4;
-    if (payload_len < 0) return -1;
-    if (payload_len > MAX_DATA_BUFFER) {
-        payload_len = MAX_DATA_BUFFER;
+    uint8_t *data = (uint8_t *)buf+iph->ihl*4+sizeof(struct udphdr);
+    pkt->data_len = ntohs(iph->tot_len)-sizeof(struct udphdr)-iph->ihl*4;
+    if (pkt->data_len < 0) return -1;
+    if (pkt->data_len > MAX_DATA_BUFFER) {
+        pkt->data_len = MAX_DATA_BUFFER;
     }
 
-    uint8_t *data = malloc(payload_len);
-    if (!data) return -1;
+    pkt->iph = calloc(1, sizeof(struct iphdr));
+    if (!pkt->iph) {
+        return -1;
+    }
 
-    memcpy(data, payload, payload_len);
-    pkt->method = nts->method;
-    pkt->icmptime.iph = *iph;
-    pkt->icmptime.data = data;
-    pkt->icmptime.data_len = payload_len;
+    pkt->data = calloc(pkt->data_len, sizeof(uint8_t));
+    if (!pkt->data) {
+        return -1;
+    }
 
+    memcpy(pkt->iph, iph, sizeof(struct iphdr));
+    memcpy(pkt->data, data, pkt->data_len);
+    
     return 0;
 }
 
 static int parse_inner_icmp(struct nt_session *nts, struct nt_read_packet *pkt, uint8_t *buf) {
     struct iphdr *iph = (struct iphdr *)buf;
-    if (ntohl(iph->daddr) != nts->icmp_ctx.addr) {
+    if (ntohl(iph->daddr) != nts->icmp_ctx->addr) {
         return -1;
     }
 
-    uint8_t *payload = (uint8_t *)buf+iph->ihl*4+sizeof(struct icmphdr);
-    ssize_t payload_len = ntohs(iph->tot_len)-sizeof(struct icmphdr)-iph->ihl*4;
-    if (payload_len < 0) return -1;
-    if (payload_len > MAX_DATA_BUFFER) {
-        payload_len = MAX_DATA_BUFFER;
+    uint8_t *data = (uint8_t *)buf+iph->ihl*4+sizeof(struct icmphdr);
+    pkt->data_len = ntohs(iph->tot_len)-sizeof(struct icmphdr)-iph->ihl*4;
+    if (pkt->data_len < 0) return -1;
+    if (pkt->data_len > MAX_DATA_BUFFER) {
+        pkt->data_len = MAX_DATA_BUFFER;
     }
 
-    uint8_t *data = malloc(payload_len);
-    if (!data) return -1;
+    pkt->iph = calloc(1, sizeof(struct iphdr));
+    if (!pkt->iph) {
+        return -1;
+    }
 
-    memcpy(data, payload, payload_len);
-    pkt->method = nts->method;
-    pkt->icmptime.iph = *iph;
-    pkt->icmptime.data = data;
-    pkt->icmptime.data_len = payload_len;
+    pkt->data = calloc(pkt->data_len, sizeof(uint8_t));
+    if (!pkt->data) {
+        return -1;
+    }
 
+    memcpy(pkt->iph, iph, sizeof(struct iphdr));
+    memcpy(pkt->data, data, pkt->data_len);
+    
     return 0;
 }
 
 int read_icmp_exceeded(struct nt_session *nts, struct nt_read_packet *pkt) {    
     uint8_t buf[MAX_DATA_BUFFER];
-    int n = read(nts->icmp_ctx.socket, buf, MAX_DATA_BUFFER);
+    int n = read(nts->icmp_ctx->socket, buf, MAX_DATA_BUFFER);
     if (n < 0) return -1;
 
     struct iphdr *iph = (struct iphdr *)buf;
