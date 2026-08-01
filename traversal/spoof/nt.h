@@ -4,9 +4,7 @@
 #include <stdint.h>
 #include <poll.h>
 
-struct nt_session;
-struct nt_read_packet;
-struct nt_send_packet;
+#include "../traversal.h"
 
 #define ECHO_ID 1111
 #define ECHO_SEQ 2222
@@ -15,11 +13,8 @@ struct nt_send_packet;
 struct nt_spoof_context {
     int send_socket;
     int read_socket;
-    
-    struct pollfd pfd;
 
-    uint32_t pub_addr;
-    uint16_t mapped_port;
+    struct pollfd pfd;
 
     uint32_t relay_addr;
 
