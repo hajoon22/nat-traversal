@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <poll.h>
 #include <arpa/inet.h>
@@ -7,8 +8,8 @@
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 
-#include "../stun/stun.h"
 #include "../traversal.h"
+#include "../stun/stun.h"
 #include "../checksum/checksum.h"
 
 #include "nt.h"
@@ -53,13 +54,15 @@ void deinit_nt_icmp_context(struct nt_icmp_context *ctx) {
     if (ctx->socket >= 0) {
         close(ctx->socket);
     }
+
+    free(ctx);
 }
 
 static int init_nt_icmp_udp(struct nt_session *nts) {
     nts->socket = init_stun(
         nts->stun_addr, nts->stun_port, 
-        &nts->icmp_ctx.pub_addr, 
-        &nts->icmp_ctx.mapped_port);
+        &nts->pub_addr, 
+        &nts->mapped_port);
 
     if (nts->socket < 0) {
         return nts->socket;
@@ -100,9 +103,9 @@ int init_nt_icmp(struct nt_session *nts) {
 
         case nt_method_icmp_exceeded_icmp:
         case nt_method_icmp_unreach_icmp: {
-            nts->icmp_ctx.id = ECHO_ID;
-            nts->icmp_ctx.seq = ECHO_SEQ;
-            nts->icmp_ctx.addr = ntohl(inet_addr(ECHO_ADDR));
+            nts->icmp_ctx->id = ECHO_ID;
+            nts->icmp_ctx->seq = ECHO_SEQ;
+            nts->icmp_ctx->addr = ntohl(inet_addr(ECHO_ADDR));
 
             if (init_nt_icmp_icmp(nts) < 0) {
                 return -1;
@@ -115,14 +118,14 @@ int init_nt_icmp(struct nt_session *nts) {
             return -1;
     }
 
-    nts->icmp_ctx.socket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (nts->icmp_ctx.socket < 0) {
+    nts->icmp_ctx->socket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (nts->icmp_ctx->socket < 0) {
         deinit_nt_session(nts);
-        return nts->icmp_ctx.socket;
+        return nts->icmp_ctx->socket;
     }
 
-    nts->icmp_ctx.pfd = (struct pollfd){
-        .fd = nts->icmp_ctx.socket,
+    nts->icmp_ctx->pfd = (struct pollfd){
+        .fd = nts->icmp_ctx->socket,
         .events = POLLIN,
     };
 
@@ -130,7 +133,7 @@ int init_nt_icmp(struct nt_session *nts) {
 }
 
 int nt_read_icmp(struct nt_session *nts, struct nt_read_packet *pkt) {
-    int n = poll(&nts->icmp_ctx.pfd, 1, 1000);
+    int n = poll(&nts->icmp_ctx->pfd, 1, 1000);
     if (n > 0) {
         switch (nts->method) {
             case nt_method_icmp_unreach_icmp:
