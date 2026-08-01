@@ -5,13 +5,12 @@
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 
+#include "echo.h"
+#include "../nt.h"
+
+#include "../../ipip/ipip.h"
 #include "../../traversal.h"
 #include "../../checksum/checksum.h"
-#include "../../ipip/ipip.h"
-
- void deinit_spoof_echo(struct spoof_echo *spoofecho){
-    free(spoofecho->data);
-}
 
 static ssize_t build_echo_request(uint8_t **buf, struct nt_session *nts, struct nt_send_packet *pkt) {
     size_t total_len = sizeof(struct iphdr)+sizeof(struct icmphdr)+pkt->data_len;
@@ -32,15 +31,15 @@ static ssize_t build_echo_request(uint8_t **buf, struct nt_session *nts, struct 
     iph->ttl = 64;
     iph->protocol = IPPROTO_ICMP;
     iph->saddr = htonl(pkt->daddr);
-    iph->daddr = htonl(nts->spoof_ctx.addr);
+    iph->daddr = htonl(nts->spoof_ctx->addr);
     iph->check = htons(checksum(*buf, sizeof(struct iphdr)));
 
     struct icmphdr *icmph = (struct icmphdr *)(*buf+offset);
     offset += sizeof(struct icmphdr);
 
     icmph->type = ICMP_ECHO;
-    icmph->un.echo.id = htons(nts->spoof_ctx.id);
-    icmph->un.echo.sequence = htons(nts->spoof_ctx.seq);
+    icmph->un.echo.id = htons(nts->spoof_ctx->id);
+    icmph->un.echo.sequence = htons(nts->spoof_ctx->seq);
 
     memcpy(*buf+offset, pkt->data, pkt->data_len);
 
@@ -57,9 +56,9 @@ static int send_spoof_echo_reflection(struct nt_session *nts, struct nt_send_pac
     }
 
     int ret = send_ipip(
-        nts->spoof_ctx.send_socket, 
-        nts->spoof_ctx.pub_addr, 
-        nts->spoof_ctx.relay_addr, 
+        nts->spoof_ctx->send_socket, 
+        nts->pub_addr, 
+        nts->spoof_ctx->relay_addr, 
         buf, 
         (size_t)len);
     free(buf);
@@ -93,35 +92,35 @@ static int parse_icmp_echo(struct nt_session *nts, struct nt_read_packet *pkt, u
     struct icmphdr *icmph = (struct icmphdr *)(buf+offset);
     offset += sizeof(struct icmphdr);
 
-    if (ntohs(icmph->un.echo.id) != nts->spoof_ctx.id) {
+    if (ntohs(icmph->un.echo.id) != nts->spoof_ctx->id) {
         return -1;
     }
 
     uint8_t *data = buf+offset;
-    pkt->spoofecho.data_len = len-sizeof(struct iphdr)-sizeof(struct icmphdr);
+    pkt->data_len = len-sizeof(struct iphdr)-sizeof(struct icmphdr);
 
-    pkt->spoofecho.data = calloc(pkt->spoofecho.data_len, sizeof(uint8_t));
-    if (!pkt->spoofecho.data) {
+    pkt->data = calloc(pkt->data_len, sizeof(uint8_t));
+    if (!pkt->data) {
         return -1;
     }
 
-    pkt->method = nts->method;
-    memcpy(pkt->spoofecho.data, data, pkt->spoofecho.data_len);
-    
-    return (int)pkt->spoofecho.data_len;
+    pkt->iph = calloc(1, sizeof(struct iphdr));
+    if (!pkt->iph) {
+        return -1;
+    }
+
+    memcpy(pkt->data, data, pkt->data_len);
+    memcpy(pkt->iph, iph, sizeof(struct iphdr));
+
+    return (int)pkt->data_len;
 }
 
 int read_spoof_echo(struct nt_session *nts, struct nt_read_packet *pkt) {
-    int n = poll(&nts->spoof_ctx.pfd, 1, 1000);
-    if (n > 0) {
-        uint8_t buf[MAX_DATA_BUFFER];
-        ssize_t ret = recv(nts->spoof_ctx.read_socket, buf, sizeof(buf), 0);
-        if (ret < 0) {
-            return (int)ret;
-        }
-
-        return parse_icmp_echo(nts, pkt, buf, (size_t)ret);
+    uint8_t buf[MAX_DATA_BUFFER];
+    ssize_t ret = recv(nts->spoof_ctx->read_socket, buf, sizeof(buf), 0);
+    if (ret < 0) {
+        return (int)ret;
     }
 
-    return -1;
+    return parse_icmp_echo(nts, pkt, buf, (size_t)ret);
 }
