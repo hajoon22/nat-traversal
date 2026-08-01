@@ -4,13 +4,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "icmp/nt.h"
-#include "icmp/unreach/unreach.h"
-#include "icmp/exceeded/exceeded.h"
+struct nt_spoof_context;
+struct nt_icmp_context;
 
-#include "spoof/nt.h"
-#include "spoof/udp/udp.h"
-#include "spoof/echo/echo.h"
+struct icmp_unreach;
+struct icmp_exceeded;
+struct spoof_udp;
+struct spoof_echo;
 
 // nat traversal method
 enum nt_method {
@@ -30,21 +30,21 @@ struct nt_session {
     uint32_t stun_addr;
     uint16_t stun_port;
 
+    uint32_t pub_addr;
+    uint16_t mapped_port;
+
     enum nt_method method;
     union {
-        struct nt_spoof_context spoof_ctx;
-        struct nt_icmp_context icmp_ctx;
+        struct nt_spoof_context *spoof_ctx;
+        struct nt_icmp_context *icmp_ctx;
     };
 };
 
 struct nt_read_packet {
-    enum nt_method method;
-    union {
-        struct icmp_unreach icmpun;
-        struct icmp_exceeded icmptime;
-        struct spoof_udp spoofudp;
-        struct spoof_echo spoofecho;
-    };
+    struct iphdr *iph;
+    
+    uint8_t *data;
+    size_t data_len;
 };
 
 struct nt_send_packet {
@@ -55,7 +55,7 @@ struct nt_send_packet {
     size_t data_len;
 };
 
-int init_nt_session(struct nt_session *nts);
+int init_nt_session(struct nt_session *nts, ...);
 void deinit_nt_session(struct nt_session *nts);
 
 int nt_read(struct nt_session *nts, struct nt_read_packet *rpkt);
