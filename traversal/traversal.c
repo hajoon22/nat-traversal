@@ -1,6 +1,8 @@
+#include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <stdarg.h>
 
 #include "traversal.h"
 
@@ -12,17 +14,33 @@
 #include "spoof/udp/udp.h"
 #include "spoof/echo/echo.h"
 
-int init_nt_session(struct nt_session *nts) {
+int init_nt_session(struct nt_session *nts, ...) {
+    va_list ap;
+    va_start(ap, nts);
+
     switch (nts->method) {
         case nt_method_icmp_exceeded_udp:
         case nt_method_icmp_unreach_udp:
         case nt_method_icmp_unreach_icmp:
-        case nt_method_icmp_exceeded_icmp:
+        case nt_method_icmp_exceeded_icmp: {
+            nts->icmp_ctx = calloc(1, sizeof(struct nt_icmp_context));
+            if (!nts->icmp_ctx) {
+                return -1;
+            }
+
             return init_nt_icmp(nts);
+        }
             
         case nt_method_spoof_udp_direct:
-        case nt_method_spoof_echo_reflection:
+        case nt_method_spoof_echo_reflection: {
+            nts->spoof_ctx = calloc(1, sizeof(struct nt_spoof_context));
+            if (!nts->spoof_ctx) {
+                return -1;
+            }
+
+            nts->spoof_ctx->relay_addr = va_arg(ap, uint32_t);
             return init_nt_spoof(nts);
+        }
     }
 
     return -1;
@@ -43,11 +61,11 @@ void deinit_nt_session(struct nt_session *nts) {
         case nt_method_icmp_exceeded_udp:
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_exceeded_icmp:
-            return deinit_nt_icmp_context(&nts->icmp_ctx);
+            return deinit_nt_icmp_context(nts->icmp_ctx);
 
         case nt_method_spoof_udp_direct:
         case nt_method_spoof_echo_reflection:
-            return deinit_nt_spoof_context(&nts->spoof_ctx);
+            return deinit_nt_spoof_context(nts->spoof_ctx);
     }
 }
 
@@ -84,17 +102,6 @@ int nt_send(struct nt_session *nts, struct nt_send_packet *pkt) {
 }
 
 void deinit_nt_read_packet(struct nt_read_packet *pkt) {
-    switch (pkt->method) {
-        case nt_method_icmp_unreach_icmp:
-        case nt_method_icmp_unreach_udp:
-            return deinit_icmp_unreach(&pkt->icmpun);
-        case nt_method_icmp_exceeded_icmp:
-        case nt_method_icmp_exceeded_udp:
-            return deinit_icmp_exceeded(&pkt->icmptime);
-
-        case nt_method_spoof_udp_direct:
-            return deinit_spoof_udp(&pkt->spoofudp);
-        case nt_method_spoof_echo_reflection:
-            return deinit_spoof_echo(&pkt->spoofecho);
-    }
+    free(pkt->iph);
+    free(pkt->data);
 }
