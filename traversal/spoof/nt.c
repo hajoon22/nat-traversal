@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <poll.h>
 #include <arpa/inet.h>
@@ -6,12 +7,13 @@
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 
+#include "nt.h"
+#include "udp/udp.h"
+#include "echo/echo.h"
+
 #include "../traversal.h"
 #include "../stun/stun.h"
 #include "../checksum/checksum.h"
-#include "udp/udp.h"
-#include "nt.h"
-#include "echo/echo.h"
 
 static int init_keepalive_udp(int s) {
     int pid = fork();
@@ -52,6 +54,8 @@ void deinit_nt_spoof_context(struct nt_spoof_context *ctx) {
         close(ctx->read_socket);
         close(ctx->send_socket);
     }
+
+    free(ctx);
 }
 
 static int init_nt_spoof_echo(struct nt_session *nts) {
@@ -66,7 +70,7 @@ static int init_nt_spoof_echo(struct nt_session *nts) {
         return nts->keepalive_pid;
     }
 
-    nts->spoof_ctx.read_socket = nts->socket;
+    nts->spoof_ctx->read_socket = nts->socket;
 
     return 0;
 }
@@ -74,17 +78,17 @@ static int init_nt_spoof_echo(struct nt_session *nts) {
 int init_nt_spoof(struct nt_session *nts) {
     nts->socket = init_stun(
         nts->stun_addr, nts->stun_port, 
-        &nts->spoof_ctx.pub_addr, 
-        &nts->spoof_ctx.mapped_port);
+        &nts->pub_addr, 
+        &nts->mapped_port);
 
     if (nts->socket < 0) {
         return nts->socket;
     }
 
-    nts->spoof_ctx.send_socket = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-    if (nts->spoof_ctx.send_socket < 0) {
+    nts->spoof_ctx->send_socket = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+    if (nts->spoof_ctx->send_socket < 0) {
         deinit_nt_session(nts);
-        return nts->spoof_ctx.send_socket;
+        return nts->spoof_ctx->send_socket;
     }
 
     switch (nts->method) {
@@ -95,7 +99,7 @@ int init_nt_spoof(struct nt_session *nts) {
                 return nts->keepalive_pid;
             }
 
-            nts->spoof_ctx.read_socket = nts->socket;
+            nts->spoof_ctx->read_socket = nts->socket;
 
             break;
         }
@@ -103,9 +107,9 @@ int init_nt_spoof(struct nt_session *nts) {
         case nt_method_spoof_echo_reflection: {
             close(nts->socket);
             
-            nts->spoof_ctx.id = ECHO_ID;
-            nts->spoof_ctx.seq = ECHO_SEQ;
-            nts->spoof_ctx.addr = ntohl(inet_addr(ECHO_ADDR));
+            nts->spoof_ctx->id = ECHO_ID;
+            nts->spoof_ctx->seq = ECHO_SEQ;
+            nts->spoof_ctx->addr = ntohl(inet_addr(ECHO_ADDR));
 
             if (init_nt_spoof_echo(nts) < 0) {
                 return -1;
@@ -116,8 +120,8 @@ int init_nt_spoof(struct nt_session *nts) {
     }
 
     
-    nts->spoof_ctx.pfd = (struct pollfd){
-        .fd = nts->spoof_ctx.read_socket,
+    nts->spoof_ctx->pfd = (struct pollfd){
+        .fd = nts->spoof_ctx->read_socket,
         .events = POLLIN,
     };
     
@@ -126,13 +130,16 @@ int init_nt_spoof(struct nt_session *nts) {
 }
 
 int nt_read_spoof(struct nt_session *nts, struct nt_read_packet *pkt) {
-    switch (nts->method) {
-        case nt_method_spoof_udp_direct: {
-            return read_spoof_udp_direct(nts, pkt);
-        }
-        
-        case nt_method_spoof_echo_reflection: {
-            return read_spoof_echo(nts, pkt);
+    int n = poll(&nts->spoof_ctx->pfd, 1, 1000);
+    if (n > 0) {
+        switch (nts->method) {
+            case nt_method_spoof_udp_direct: {
+                return read_spoof_udp(nts, pkt);
+            }
+            
+            case nt_method_spoof_echo_reflection: {
+                return read_spoof_echo(nts, pkt);
+            }
         }
     }
 
@@ -142,7 +149,7 @@ int nt_read_spoof(struct nt_session *nts, struct nt_read_packet *pkt) {
 int nt_send_spoof(struct nt_session *nts, struct nt_send_packet *pkt) {
     switch (nts->method) {
         case nt_method_spoof_udp_direct: {
-           return send_spoof_udp_direct(nts, pkt);
+           return send_spoof_udp(nts, pkt);
         }
 
         case nt_method_spoof_echo_reflection: {
