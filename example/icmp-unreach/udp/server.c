@@ -20,8 +20,8 @@ int main(void) {
     }
     
     struct in_addr a;
-    a.s_addr = htonl(nts.icmp_ctx.pub_addr);
-    printf("mapped: %s:%d (udp)\n", inet_ntoa(a), nts.icmp_ctx.mapped_port);
+    a.s_addr = htonl(nts.pub_addr);
+    printf("mapped: %s:%d (udp)\n", inet_ntoa(a), nts.mapped_port);
 
     struct nt_read_packet rpkt;
     while (1) {
@@ -29,7 +29,7 @@ int main(void) {
             continue;
         }
 
-        printf("recived data: %.*s\n", (int)rpkt.icmpun.data_len, (char *)rpkt.icmpun.data);
+        printf("recived data: %.*s\n", (int)rpkt.data_len, (char *)rpkt.data);
         deinit_nt_read_packet(&rpkt);
 
         break;
