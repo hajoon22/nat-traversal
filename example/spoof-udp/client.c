@@ -12,10 +12,11 @@ int main(void) {
     struct nt_session nts;
     nts.stun_addr = ntohl(inet_addr("74.125.250.129"));
     nts.stun_port = 19302;
-    nts.method = nt_method_spoof_udp;
-    nts.spoof_ctx.relay_addr = ntohl(inet_addr("127.0.0.1"));
+    nts.method = nt_method_spoof_udp_direct;
+    
+    uint32_t relay_addr = ntohl(inet_addr("127.0.0.1"));
 
-    if (init_nt_session(&nts) < 0) {
+    if (init_nt_session(&nts, relay_addr) < 0) {
         printf("init nt session error\n");
         return -1;
     }
