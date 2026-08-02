@@ -23,7 +23,7 @@ int main(void) {
             continue;
         }
 
-        printf("recived data: %.*s\n", (int)rpkt.icmpun.data_len, (char *)rpkt.icmpun.data);
+        printf("recived data: %.*s\n", (int)rpkt.data_len, (char *)rpkt.data);
         deinit_nt_read_packet(&rpkt);
 
         break;
