@@ -12,17 +12,18 @@ int main(void) {
     struct nt_session nts;
     nts.stun_addr = ntohl(inet_addr("74.125.250.129"));
     nts.stun_port = 19302;
-    nts.method = nt_method_spoof_udp;
-    nts.spoof_ctx.relay_addr = ntohl(inet_addr("127.0.0.1"));
+    nts.method = nt_method_spoof_udp_direct;
     
-    if (init_nt_session(&nts) < 0) {
+    uint32_t relay_addr = ntohl(inet_addr("127.0.0.1"));
+
+    if (init_nt_session(&nts, relay_addr) < 0) {
         printf("init nt session error\n");
         return -1;
     }
-    
+
     struct in_addr a;
-    a.s_addr = htonl(nts.icmp_ctx.pub_addr);
-    printf("mapped: %s:%d (udp)\n", inet_ntoa(a), nts.icmp_ctx.mapped_port);
+    a.s_addr = htonl(nts.pub_addr);
+    printf("mapped: %s:%d (udp)\n", inet_ntoa(a), nts.mapped_port);
 
     struct nt_read_packet rpkt;
     while (1) {
@@ -30,7 +31,7 @@ int main(void) {
             continue;
         }
 
-        printf("recived data: %.*s\n", (int)rpkt.icmpun.data_len, (char *)rpkt.icmpun.data);
+        printf("recived data: %.*s\n", (int)rpkt.data_len, (char *)rpkt.data);
         deinit_nt_read_packet(&rpkt);
 
         break;
