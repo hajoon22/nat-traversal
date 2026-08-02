@@ -1,5 +1,5 @@
 /*
-SPOOF UDP NAT Traversal 
+SPOOF ICMP ECHO NAT Traversal 
 Client Example
 */
 #include <stdio.h>
