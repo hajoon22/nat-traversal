@@ -97,7 +97,12 @@ static int parse_icmp_echo(struct nt_session *nts, struct nt_read_packet *pkt, u
     }
 
     uint8_t *data = buf+offset;
-    pkt->data_len = len-sizeof(struct iphdr)-sizeof(struct icmphdr);
+    ssize_t data_len = len-sizeof(struct iphdr)-sizeof(struct icmphdr);
+    if (data_len < 0) return -1;
+    if (data_len > MAX_DATA_BUFFER) {
+        data_len = MAX_DATA_BUFFER;
+    }
+    pkt->data_len = (size_t)data_len;
 
     pkt->data = calloc(pkt->data_len, sizeof(uint8_t));
     if (!pkt->data) {
