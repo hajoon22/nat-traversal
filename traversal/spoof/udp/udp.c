@@ -37,7 +37,7 @@ int read_spoof_udp(struct nt_session *nts, struct nt_read_packet *pkt) {
     }
 
     pkt->data_len = (size_t)r;
-    memcpy(pkt->data, buf, r);
+    memcpy(pkt->data, buf, pkt->data_len);
 
     return (int)r;
 }
