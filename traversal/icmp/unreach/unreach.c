@@ -156,11 +156,12 @@ static int parse_inner_udp(struct nt_session *nts, struct nt_read_packet *pkt, u
     }
 
     uint8_t *data = (uint8_t *)buf+iph->ihl*4+sizeof(struct udphdr);
-    pkt->data_len = ntohs(iph->tot_len)-sizeof(struct udphdr)-iph->ihl*4;
-    if (pkt->data_len < 0) return -1;
-    if (pkt->data_len > MAX_DATA_BUFFER) {
-        pkt->data_len = MAX_DATA_BUFFER;
+    ssize_t data_len = ntohs(iph->tot_len)-sizeof(struct udphdr)-iph->ihl*4;
+    if (data_len < 0) return -1;
+    if (data_len > MAX_DATA_BUFFER) {
+        data_len = MAX_DATA_BUFFER;
     }
+    pkt->data_len = (size_t)data_len;
 
     pkt->iph = calloc(1, sizeof(struct iphdr));
     if (!pkt->iph) {
@@ -185,11 +186,12 @@ static int parse_inner_icmp(struct nt_session *nts, struct nt_read_packet *pkt, 
     }
 
     uint8_t *data = (uint8_t *)buf+iph->ihl*4+sizeof(struct icmphdr);
-    pkt->data_len = ntohs(iph->tot_len)-sizeof(struct icmphdr)-iph->ihl*4;
-    if (pkt->data_len < 0) return -1;
-    if (pkt->data_len > MAX_DATA_BUFFER) {
-        pkt->data_len = MAX_DATA_BUFFER;
+    ssize_t data_len = ntohs(iph->tot_len)-sizeof(struct icmphdr)-iph->ihl*4;
+    if (data_len < 0) return -1;
+    if (data_len > MAX_DATA_BUFFER) {
+        data_len = MAX_DATA_BUFFER;
     }
+    pkt->data_len = (size_t)data_len;
 
     pkt->iph = calloc(1, sizeof(struct iphdr));
     if (!pkt->iph) {
