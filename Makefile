@@ -12,11 +12,11 @@ example-unreach-client-icmp.o: example/icmp-unreach/icmp/client.c
 example-unreach-server-icmp.o: example/icmp-unreach/icmp/server.c
 	gcc -c example/icmp-unreach/icmp/server.c -o example-unreach-server-icmp.o
 
-example-icmp-exceeded: example-exceeded-client-icmp.o example-exceeded-server-icmp.o example-exceeded-client-udp.o example-exceeded-server-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o exceeded-udp-client example-exceeded-client-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o exceeded-udp-server example-exceeded-server-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o exceeded-icmp-client example-exceeded-client-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
-	gcc -o exceeded-icmp-server example-exceeded-server-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o
+example-icmp-exceeded: example-exceeded-client-icmp.o example-exceeded-server-icmp.o example-exceeded-client-udp.o example-exceeded-server-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
+	gcc -o exceeded-udp-client example-exceeded-client-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
+	gcc -o exceeded-udp-server example-exceeded-server-udp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
+	gcc -o exceeded-icmp-client example-exceeded-client-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
+	gcc -o exceeded-icmp-server example-exceeded-server-icmp.o traversal.o stun.o unreach.o icmp-nt.o checksum.o exceeded.o ipip.o spoofudp.o spoof-nt.o spoofecho.o
 example-exceeded-client-udp.o: example/icmp-exceeded/udp/client.c
 	gcc -c example/icmp-exceeded/udp/client.c -o example-exceeded-client-udp.o
 example-exceeded-server-udp.o: example/icmp-exceeded/udp/server.c
