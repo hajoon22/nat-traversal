@@ -85,7 +85,7 @@ static int parse_icmp_echo(struct nt_session *nts, struct nt_read_packet *pkt, u
     struct iphdr *iph = (struct iphdr *)buf;
     offset += sizeof(struct iphdr);
 
-    if (ntohs(iph->tot_len) != len) {
+    if (ntohs(iph->tot_len) != len || ntohl(iph->saddr) != nts->spoof_ctx->addr) {
         return -1;
     }
 
@@ -98,7 +98,7 @@ static int parse_icmp_echo(struct nt_session *nts, struct nt_read_packet *pkt, u
 
     uint8_t *data = buf+offset;
     ssize_t data_len = len-sizeof(struct iphdr)-sizeof(struct icmphdr);
-    if (data_len < 0) return -1;
+    if (data_len <= 0) return -1;
     if (data_len > MAX_DATA_BUFFER) {
         data_len = MAX_DATA_BUFFER;
     }
