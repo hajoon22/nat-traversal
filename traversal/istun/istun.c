@@ -8,6 +8,7 @@
 #include <netinet/ip_icmp.h>
 
 #include "istun.h"
+#include "../checksum/checksum.h"
 
 static void build_istun_reply(uint8_t buf[REPLY_SIZE], uint16_t id) {
         struct icmphdr *icmph = (struct icmphdr *)buf;
