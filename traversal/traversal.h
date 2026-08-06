@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "istun/istun.h"
+
 struct nt_spoof_context;
 struct nt_icmp_context;
 
