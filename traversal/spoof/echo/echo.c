@@ -38,8 +38,8 @@ static ssize_t build_echo_request(uint8_t **buf, struct nt_session *nts, struct 
     offset += sizeof(struct icmphdr);
 
     icmph->type = ICMP_ECHO;
-    icmph->un.echo.id = htons(nts->spoof_ctx->id);
-    icmph->un.echo.sequence = htons(nts->spoof_ctx->seq);
+    icmph->un.echo.id = htons(pkt->did);
+    icmph->un.echo.sequence = htons(2222);
 
     memcpy(*buf+offset, pkt->data, pkt->data_len);
 
@@ -92,7 +92,7 @@ static int parse_icmp_echo(struct nt_session *nts, struct nt_read_packet *pkt, u
     struct icmphdr *icmph = (struct icmphdr *)(buf+offset);
     offset += sizeof(struct icmphdr);
 
-    if (ntohs(icmph->un.echo.id) != nts->spoof_ctx->id) {
+    if (ntohs(icmph->un.echo.id) != nts->mapped_id) {
         return -1;
     }
 
