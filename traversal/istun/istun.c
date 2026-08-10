@@ -1,8 +1,10 @@
 // ICMP STUN Server (reflects the rewritten ICMP echo id)
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <poll.h> 
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -21,36 +23,33 @@ static void build_istun_reply(uint8_t buf[REPLY_SIZE], uint16_t id) {
 }
 
 static int listen_istun(int s) {
-    int pid = fork();
-    if (pid == 0) {
-        uint8_t reply[REPLY_SIZE];
-        uint8_t buf[MAX_DATA_BUFFER];
-        while (1) {
-            ssize_t len = read(s, buf, MAX_DATA_BUFFER);
-            if (len < 0) break;
-            if (len < sizeof(struct iphdr)+sizeof(struct icmphdr)) continue;
+    uint8_t reply[REPLY_SIZE];
+    uint8_t buf[MAX_DATA_BUFFER];
+    while (1) {
+        ssize_t len = read(s, buf, MAX_DATA_BUFFER);
+        if (len < 0) break;
+        if (len < sizeof(struct iphdr)+sizeof(struct icmphdr)) continue;
 
-            size_t offset = 0;
+        size_t offset = 0;
 
-            struct iphdr *iph = (struct iphdr *)buf;
-            offset += sizeof(struct iphdr);
+        struct iphdr *iph = (struct iphdr *)buf;
+        offset += sizeof(struct iphdr);
 
-            struct icmphdr *icmph = (struct icmphdr *)(buf+offset);
+        struct icmphdr *icmph = (struct icmphdr *)(buf+offset);
+        if (icmph->type != ICMP_ECHO) continue;
 
-            memset(reply, 0, REPLY_SIZE);
-            build_istun_reply(reply, icmph->un.echo.id);
+        memset(reply, 0, REPLY_SIZE);
+        build_istun_reply(reply, icmph->un.echo.id);
 
-            struct sockaddr_in sin;
-            sin.sin_family = AF_INET;
-            sin.sin_addr.s_addr = iph->saddr;
+        struct sockaddr_in sin;
+        sin.sin_family = AF_INET;
+        sin.sin_addr.s_addr = iph->saddr;
 
-            sendto(s, reply, REPLY_SIZE, 0, (struct sockaddr *)&sin, sizeof(sin));
-        }
-
-        close(s);
+        printf("sent istun reply to %s (id = %d)\n", inet_ntoa(sin.sin_addr), ntohs(icmph->un.echo.id));
+        sendto(s, reply, REPLY_SIZE, 0, (struct sockaddr *)&sin, sizeof(sin));
     }
-    
-    return pid;
+
+    close(s);
 }
 
 int init_istun() {
@@ -114,13 +113,17 @@ int send_istun_request(uint32_t istun_addr, uint16_t sid) {
     };
 
     // timeout: 10 sec
-    int r = poll(&pfd, 1, 10000);
-    if (r > 0) {
-        uint8_t buf[MAX_DATA_BUFFER];
-        int n = read(s, buf, MAX_DATA_BUFFER);
+    for (int i = 0; i < 5; i++) {
+        int r = poll(&pfd, 1, 10000);
+        if (r > 0) {
+            uint8_t buf[MAX_DATA_BUFFER];
+            int n = read(s, buf, MAX_DATA_BUFFER);
+            
+            int ret = parse_istun_reply(istun_addr, buf, n);
+            if (ret < 0) continue;
 
-        int ret = parse_istun_reply(istun_addr, buf, n);
-        return ret;
+            return ret;
+        }
     }
 
     return -1; // timeout
