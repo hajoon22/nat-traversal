@@ -53,14 +53,14 @@ static ssize_t build_inner_icmp(struct nt_session *nts, struct nt_send_packet *p
     iph->ttl = 64;
     iph->protocol = IPPROTO_ICMP;
     iph->saddr = htonl(pkt->daddr);
-    iph->daddr = htonl(nts->icmp_ctx->addr);
+    iph->daddr = htonl(nts->istun_addr);
     
     struct icmphdr *icmph = (struct icmphdr *)(*buf+offset);
     offset += sizeof(struct icmphdr);
 
     icmph->type = ICMP_ECHO;
-    icmph->un.echo.id = htons(nts->icmp_ctx->id);
-    icmph->un.echo.sequence = htons(nts->icmp_ctx->seq); 
+    icmph->un.echo.id = htons(pkt->did);
+    icmph->un.echo.sequence = htons(2222); 
 
     memcpy(*buf+offset, pkt->data, pkt->data_len);
 
@@ -140,7 +140,7 @@ int send_icmp_unreach(struct nt_session *nts, struct nt_send_packet *pkt) {
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = htonl(pkt->daddr);
 
-    ssize_t ret = sendto(nts->icmp_ctx->socket, buf, len, 0, (struct sockaddr *)&sin, sizeof(sin));
+    ssize_t ret = sendto(nts->icmp_ctx->send_socket, buf, len, 0, (struct sockaddr *)&sin, sizeof(sin));
     free(buf);
     if (ret != len) {
         return (int)ret;
@@ -181,7 +181,7 @@ static int parse_inner_udp(struct nt_session *nts, struct nt_read_packet *pkt, u
 
 static int parse_inner_icmp(struct nt_session *nts, struct nt_read_packet *pkt, uint8_t *buf) {
     struct iphdr *iph = (struct iphdr *)buf;
-    if (ntohl(iph->daddr) != nts->icmp_ctx->addr) {
+    if (ntohl(iph->daddr) != nts->istun_addr) {
         return -1;
     }
 
@@ -211,7 +211,7 @@ static int parse_inner_icmp(struct nt_session *nts, struct nt_read_packet *pkt, 
 
 int read_icmp_unreach(struct nt_session *nts, struct nt_read_packet *pkt) {    
     uint8_t buf[MAX_DATA_BUFFER];
-    int n = read(nts->icmp_ctx->socket, buf, MAX_DATA_BUFFER);
+    int n = read(nts->icmp_ctx->read_socket, buf, MAX_DATA_BUFFER);
     if (n < 0) return -1;
 
     struct iphdr *iph = (struct iphdr *)buf;
