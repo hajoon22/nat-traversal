@@ -1,6 +1,9 @@
 /*
 ICMP Destination Unreachable (UDP) NAT Traversal 
 Server Example
+
+Verified Environments
+Ubuntu (kernel 6.8.0-71-generic, x86_64) Symmetric NAT (MASQUERADE --random-fully)
 */
 #include <stdio.h>
 #include <stdint.h>
