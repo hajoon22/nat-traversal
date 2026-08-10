@@ -1,6 +1,7 @@
 #ifndef TRAVERSAL_H
 #define TRAVERSAL_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -26,15 +27,17 @@ enum nt_method {
 };
 
 struct nt_session {
-    int socket;
     int keepalive_pid;
     
     uint32_t stun_addr;
     uint16_t stun_port;
-
-    uint32_t pub_addr;
     uint16_t mapped_port;
 
+    uint32_t istun_addr;
+    uint16_t mapped_id;
+
+    uint32_t pub_addr;
+ 
     enum nt_method method;
     union {
         struct nt_spoof_context *spoof_ctx;
@@ -52,6 +55,8 @@ struct nt_read_packet {
 struct nt_send_packet {
     uint32_t daddr;
     uint16_t dport;
+
+    uint16_t did;
 
     uint8_t *data;
     size_t data_len;
