@@ -1,6 +1,12 @@
 /*
 SPOOF UDP NAT Traversal 
 Client Example
+
+Verified Environments
+Ubuntu (kernel 6.8.0-71-generic, x86_64) Full Cone NAT
+Ubuntu (kernel 6.8.0-71-generic, x86_64) Restricted Cone NAT
+Ubuntu (kernel 6.8.0-71-generic, x86_64) Port-Restricted Cone NAT
+Ubuntu (kernel 6.8.0-71-generic, x86_64) Symmetric NAT (MASQUERADE --random-fully)
 */
 #include <stdio.h>
 #include <stdint.h>
@@ -14,7 +20,7 @@ int main(void) {
     nts.stun_port = 19302;
     nts.method = nt_method_spoof_udp_direct;
     
-    uint32_t relay_addr = ntohl(inet_addr("127.0.0.1"));
+    uint32_t relay_addr = ntohl(inet_addr(""));
 
     if (init_nt_session(&nts, relay_addr) < 0) {
         printf("init nt session error\n");
@@ -22,8 +28,8 @@ int main(void) {
     }
 
     struct nt_send_packet spkt;
-    spkt.daddr = ntohl(inet_addr("1.1.1.1")); // dst
-    spkt.dport = 33539;
+    spkt.daddr = ntohl(inet_addr("")); // dst
+    spkt.dport = 18213;
     spkt.data = "hello!";
     spkt.data_len = 6;
 
