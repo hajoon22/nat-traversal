@@ -10,6 +10,7 @@
 
 #include "../traversal.h"
 #include "../stun/stun.h"
+#include "../istun/istun.h"
 #include "../checksum/checksum.h"
 
 #include "nt.h"
@@ -28,7 +29,7 @@ static int init_keepalive_udp(int s) {
     return pid;
 }
 
-static int init_keepalive_icmp(int s) {
+static int init_keepalive_icmp(int s, uint32_t istun_addr) {
     int pid = fork();
     if (pid == 0) {
         struct icmphdr icmph = {0};
@@ -39,7 +40,7 @@ static int init_keepalive_icmp(int s) {
 
         struct sockaddr_in sin;
         sin.sin_family = AF_INET;
-        sin.sin_addr.s_addr = inet_addr(ECHO_ADDR);
+        sin.sin_addr.s_addr = htonl(istun_addr);
 
         while (1) {
             sendto(s, &icmph, sizeof(icmph), 0, (struct sockaddr *)&sin, sizeof(sin));
@@ -51,24 +52,24 @@ static int init_keepalive_icmp(int s) {
 }
 
 void deinit_nt_icmp_context(struct nt_icmp_context *ctx) {
-    if (ctx->socket >= 0) {
-        close(ctx->socket);
-    }
+    close(ctx->read_socket);
+    close(ctx->send_socket);
+    close(ctx->keepalive_socket);
 
     free(ctx);
 }
 
 static int init_nt_icmp_udp(struct nt_session *nts) {
-    nts->socket = init_stun(
+    nts->icmp_ctx->keepalive_socket = init_stun(
         nts->stun_addr, nts->stun_port, 
         &nts->pub_addr, 
         &nts->mapped_port);
 
-    if (nts->socket < 0) {
-        return nts->socket;
+    if (nts->icmp_ctx->keepalive_socket < 0) {
+        return nts->icmp_ctx->keepalive_socket;
     }
     
-    nts->keepalive_pid = init_keepalive_udp(nts->socket);
+    nts->keepalive_pid = init_keepalive_udp(nts->icmp_ctx->keepalive_socket);
     if (nts->keepalive_pid < 0) {
         deinit_nt_session(nts);
         return nts->keepalive_pid;
@@ -78,19 +79,33 @@ static int init_nt_icmp_udp(struct nt_session *nts) {
 }
 
 static int init_nt_icmp_icmp(struct nt_session *nts) {
-    nts->socket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (nts->socket < 0) return nts->socket;
+    int ret = send_istun_request(nts->istun_addr, ECHO_ID);
+    if (ret < 0) return ret;
+    
+    nts->mapped_id = ECHO_ID;
+    if (ret != ECHO_ID) {
+        nts->mapped_id = (uint16_t)ret;
+    }
 
-    nts->keepalive_pid = init_keepalive_icmp(nts->socket);
+    nts->icmp_ctx->keepalive_socket = nts->icmp_ctx->send_socket;
+    nts->keepalive_pid = init_keepalive_icmp(nts->icmp_ctx->keepalive_socket, nts->istun_addr);
     if (nts->keepalive_pid < 0) {
         deinit_nt_session(nts);
         return nts->keepalive_pid;
     }
 
+    nts->icmp_ctx->read_socket = nts->icmp_ctx->send_socket;
+
     return 0;
 }
 
 int init_nt_icmp(struct nt_session *nts) {
+    nts->icmp_ctx->send_socket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+    if (nts->icmp_ctx->send_socket < 0) {
+        deinit_nt_session(nts);
+        return nts->icmp_ctx->send_socket;
+    }
+
     switch (nts->method) {
         case nt_method_icmp_exceeded_udp:
         case nt_method_icmp_unreach_udp: {
@@ -103,10 +118,6 @@ int init_nt_icmp(struct nt_session *nts) {
 
         case nt_method_icmp_exceeded_icmp:
         case nt_method_icmp_unreach_icmp: {
-            nts->icmp_ctx->id = ECHO_ID;
-            nts->icmp_ctx->seq = ECHO_SEQ;
-            nts->icmp_ctx->addr = ntohl(inet_addr(ECHO_ADDR));
-
             if (init_nt_icmp_icmp(nts) < 0) {
                 return -1;
             }
@@ -118,14 +129,8 @@ int init_nt_icmp(struct nt_session *nts) {
             return -1;
     }
 
-    nts->icmp_ctx->socket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (nts->icmp_ctx->socket < 0) {
-        deinit_nt_session(nts);
-        return nts->icmp_ctx->socket;
-    }
-
     nts->icmp_ctx->pfd = (struct pollfd){
-        .fd = nts->icmp_ctx->socket,
+        .fd = nts->icmp_ctx->read_socket,
         .events = POLLIN,
     };
 
