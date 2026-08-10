@@ -17,7 +17,7 @@ static void build_istun_reply(uint8_t buf[REPLY_SIZE], uint16_t id) {
         struct icmphdr *icmph = (struct icmphdr *)buf;
         icmph->type = ICMP_ECHOREPLY;
         icmph->un.echo.id = id;
-        icmph->un.echo.sequence = htons(22);
+        icmph->un.echo.sequence = htons(ISTUN_REPLY);
         memcpy(buf+sizeof(struct icmphdr), &id, 2);
         icmph->checksum = htons(checksum(buf, REPLY_SIZE));
 }
@@ -36,7 +36,7 @@ static int listen_istun(int s) {
         offset += sizeof(struct iphdr);
 
         struct icmphdr *icmph = (struct icmphdr *)(buf+offset);
-        if (icmph->type != ICMP_ECHO) continue;
+        if (icmph->type != ICMP_ECHO || ntohs(icmph->un.echo.sequence) != ISTUN_REQUEST) continue;
 
         memset(reply, 0, REPLY_SIZE);
         build_istun_reply(reply, icmph->un.echo.id);
@@ -77,7 +77,7 @@ static int parse_istun_reply(uint32_t istun_addr, uint8_t *buf, size_t len) {
     struct icmphdr *icmph = (struct icmphdr *)(buf+offset);
     offset += sizeof(struct icmphdr);
 
-    if (icmph->type != ICMP_ECHOREPLY) {
+    if (icmph->type != ICMP_ECHOREPLY || ntohs(icmph->un.echo.sequence) != ISTUN_REPLY) {
         return -1;
     }
 
@@ -98,7 +98,7 @@ int send_istun_request(uint32_t istun_addr, uint16_t sid) {
     struct icmphdr icmph = {0};
     icmph.type = ICMP_ECHO;
     icmph.un.echo.id = htons(sid);
-    icmph.un.echo.sequence = htons(2222);    
+    icmph.un.echo.sequence = htons(ISTUN_REQUEST);    
     icmph.checksum = htons(checksum((uint8_t *)&icmph, sizeof(icmph)));
 
     struct sockaddr_in sin;
