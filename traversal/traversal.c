@@ -19,10 +19,18 @@ int init_nt_session(struct nt_session *nts, ...) {
     va_start(ap, nts);
 
     switch (nts->method) {
-        case nt_method_icmp_exceeded_udp:
-        case nt_method_icmp_unreach_udp:
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_exceeded_icmp: {
+            nts->icmp_ctx = calloc(1, sizeof(struct nt_icmp_context));
+            if (!nts->icmp_ctx) {
+                return -1;
+            }
+
+            return init_nt_icmp(nts);
+        }
+
+        case nt_method_icmp_exceeded_udp:
+        case nt_method_icmp_unreach_udp: {
             nts->icmp_ctx = calloc(1, sizeof(struct nt_icmp_context));
             if (!nts->icmp_ctx) {
                 return -1;
@@ -39,6 +47,7 @@ int init_nt_session(struct nt_session *nts, ...) {
             }
 
             nts->spoof_ctx->relay_addr = va_arg(ap, uint32_t);
+            
             return init_nt_spoof(nts);
         }
     }
@@ -51,10 +60,6 @@ void deinit_nt_session(struct nt_session *nts) {
         kill(nts->keepalive_pid, SIGTERM);
         waitpid(nts->keepalive_pid, NULL, 0);
     }
-    
-    if (nts->socket >= 0) {
-        close(nts->socket);
-    } 
 
     switch (nts->method) {
         case nt_method_icmp_unreach_udp:
