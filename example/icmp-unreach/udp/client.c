@@ -1,6 +1,9 @@
 /*
 ICMP Destination Unreachable (UDP) NAT Traversal 
 Client Example
+
+Verified Environments
+Ubuntu (kernel 6.8.0-71-generic, x86_64) Symmetric NAT (MASQUERADE --random-fully)
 */
 #include <stdio.h>
 #include <stdint.h>
@@ -20,8 +23,8 @@ int main(void) {
     }
 
     struct nt_send_packet spkt;
-    spkt.daddr = ntohl(inet_addr("0.0.0.0")); // dst
-    spkt.dport = 47790;
+    spkt.daddr = ntohl(inet_addr("")); // dst
+    spkt.dport = 56957;
     spkt.data = "hello";
     spkt.data_len = 5;
 
