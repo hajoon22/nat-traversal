@@ -1,6 +1,8 @@
 /*
 ICMP Destination Unreachable (ICMP) NAT Traversal 
 Client Example
+
+Ubuntu (kernel 6.8.0-71-generic, x86_64) Symmetric NAT (MASQUERADE --random-fully)
 */
 #include <stdio.h>
 #include <stdint.h>
@@ -11,14 +13,16 @@ Client Example
 int main(void) {
     struct nt_session nts;
     nts.method = nt_method_icmp_unreach_icmp;
-
+    nts.istun_addr = ntohl(inet_addr(""));
+    
     if (init_nt_session(&nts) < 0) {
         printf("init nt session error\n");
         return -1;
     }
 
     struct nt_send_packet spkt;
-    spkt.daddr = ntohl(inet_addr("0.0.0.0")); // dst
+    spkt.did = 37387; // dst icmp id
+    spkt.daddr = ntohl(inet_addr("")); // dst
     spkt.data = "hello";
     spkt.data_len = 5;
 
