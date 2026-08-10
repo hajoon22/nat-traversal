@@ -8,19 +8,16 @@
 
 #define ECHO_ID 1111
 #define ECHO_SEQ 2222
-#define ECHO_ADDR "1.1.1.1"
 
 struct nt_spoof_context {
     int send_socket;
     int read_socket;
+    int keepalive_socket;
 
     struct pollfd pfd;
 
     uint32_t relay_addr;
 
-    // icmp echo
-    uint16_t id;
-    uint16_t seq;
     uint32_t addr;
 };
 
