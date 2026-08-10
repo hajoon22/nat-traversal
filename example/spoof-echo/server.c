@@ -1,6 +1,9 @@
 /*
 SPOOF ICMP ECHO NAT Traversal 
 Server Example
+
+Verified Environments
+GAPD-7500R (FW 1.03.10, 2026-02-13) Cone NAT (Endpoint-Independent Mapping)
 */
 #include <stdio.h>
 #include <stdint.h>
@@ -10,11 +13,12 @@ Server Example
 
 int main(void) {
     struct nt_session nts;
+    nts.istun_addr = ntohl(inet_addr(""));
     nts.stun_addr = ntohl(inet_addr("74.125.250.129"));
     nts.stun_port = 19302;
     nts.method = nt_method_spoof_echo_reflection;
     
-    uint32_t relay_addr = ntohl(inet_addr("127.0.0.1"));
+    uint32_t relay_addr = ntohl(inet_addr(""));
 
     if (init_nt_session(&nts, relay_addr) < 0) {
         printf("init nt session error\n");
@@ -22,8 +26,8 @@ int main(void) {
     }
 
     struct in_addr a;
-    a.s_addr = htonl(nts.spoof_ctx->pub_addr);
-    printf("public ip = %s\n", inet_ntoa(a));
+    a.s_addr = htonl(nts.pub_addr);
+    printf("public ip = %s, mapped id = %d\n", inet_ntoa(a), nts.mapped_id);
 
     struct nt_read_packet rpkt;
     while (1) {
