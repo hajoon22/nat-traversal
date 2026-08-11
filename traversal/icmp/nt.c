@@ -42,6 +42,8 @@ static int init_nt_icmp_udp(struct nt_session *nts) {
         return nts->keepalive_pid;
     }
 
+    nts->icmp_ctx->read_socket = nts->icmp_ctx->send_socket;
+
     return 0;
 }
 
