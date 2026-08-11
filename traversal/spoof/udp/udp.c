@@ -9,11 +9,12 @@
 #include <netinet/udp.h>
 
 #include "udp.h"
-#include "../nt.h"
 
+#include "../nt.h"
 #include "../../ipip/ipip.h"
 #include "../../traversal.h"
-#include "../../checksum/checksum.h"
+#include "../../common/common.h"
+#include "../../common/checksum.h"
 
 struct udp_pseudo {
     uint32_t saddr;
