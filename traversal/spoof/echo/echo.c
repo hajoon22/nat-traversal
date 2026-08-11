@@ -6,11 +6,12 @@
 #include <netinet/ip_icmp.h>
 
 #include "echo.h"
-#include "../nt.h"
 
+#include "../nt.h"
 #include "../../ipip/ipip.h"
 #include "../../traversal.h"
-#include "../../checksum/checksum.h"
+#include "../../common/common.h"
+#include "../../common/checksum.h"
 
 static ssize_t build_echo_request(uint8_t **buf, struct nt_session *nts, struct nt_send_packet *pkt) {
     size_t total_len = sizeof(struct iphdr)+sizeof(struct icmphdr)+pkt->data_len;
