@@ -7,8 +7,7 @@
 #include "traversal.h"
 
 #include "icmp/nt.h"
-#include "icmp/unreach/unreach.h"
-#include "icmp/exceeded/exceeded.h"
+#include "icmp/icmp.h"
 
 #include "spoof/nt.h"
 #include "spoof/udp/udp.h"
