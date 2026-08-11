@@ -7,8 +7,6 @@
 
 #include "../../traversal.h"
 
-#define MAX_DATA_BUFFER 1500
-
 int read_spoof_udp(struct nt_session *nts, struct nt_read_packet *pkt);
 int send_spoof_udp(struct nt_session *nts, struct nt_send_packet *pkt);
 
