@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <netinet/ip.h>
 
-#include "../checksum/checksum.h"
+#include "../common/checksum.h"
 
 static ssize_t build_ipip(uint8_t **buf, uint32_t src, uint32_t dst, uint8_t *inner, size_t inner_len) {
     size_t total_len = sizeof(struct iphdr)+inner_len;
