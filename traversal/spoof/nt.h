@@ -6,9 +6,6 @@
 
 #include "../traversal.h"
 
-#define ECHO_ID 1111
-#define ECHO_SEQ 2222
-
 struct nt_spoof_context {
     int send_socket;
     int read_socket;
