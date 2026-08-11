@@ -8,48 +8,15 @@
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 
+#include "nt.h"
+#include "icmp.h"
+
 #include "../traversal.h"
 #include "../stun/stun.h"
 #include "../istun/istun.h"
-#include "../checksum/checksum.h"
-
-#include "nt.h"
-#include "unreach/unreach.h"
-#include "exceeded/exceeded.h"
-
-static int init_keepalive_udp(int s) {
-    int pid = fork();
-    if (pid == 0) {
-        while (1) {
-            send(s, "hello", 5, 0); // keepalive
-            sleep(10);
-        }
-    }
-
-    return pid;
-}
-
-static int init_keepalive_icmp(int s, uint32_t istun_addr) {
-    int pid = fork();
-    if (pid == 0) {
-        struct icmphdr icmph = {0};
-        icmph.type = ICMP_ECHO;
-        icmph.un.echo.id = htons(ECHO_ID);
-        icmph.un.echo.sequence = htons(ECHO_SEQ);    
-        icmph.checksum = htons(checksum((uint8_t *)&icmph, sizeof(icmph)));
-
-        struct sockaddr_in sin;
-        sin.sin_family = AF_INET;
-        sin.sin_addr.s_addr = htonl(istun_addr);
-
-        while (1) {
-            sendto(s, &icmph, sizeof(icmph), 0, (struct sockaddr *)&sin, sizeof(sin));
-            sleep(5);
-        }
-    }
-
-    return pid;
-}
+#include "../common/common.h"
+#include "../common/checksum.h"
+#include "../common/keepalive.h"
 
 void deinit_nt_icmp_context(struct nt_icmp_context *ctx) {
     close(ctx->read_socket);
@@ -143,11 +110,11 @@ int nt_read_icmp(struct nt_session *nts, struct nt_read_packet *pkt) {
         switch (nts->method) {
             case nt_method_icmp_unreach_icmp:
             case nt_method_icmp_unreach_udp:
-                return read_icmp_unreach(nts, pkt);
+                return read_icmp_error(nts, pkt, ICMP_DEST_UNREACH);
 
             case nt_method_icmp_exceeded_icmp:
             case nt_method_icmp_exceeded_udp:
-                return read_icmp_exceeded(nts, pkt);
+                return read_icmp_error(nts, pkt, ICMP_TIME_EXCEEDED);
         }
     }
 
@@ -158,11 +125,11 @@ int nt_send_icmp(struct nt_session *nts, struct nt_send_packet *pkt) {
     switch (nts->method) {
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_unreach_udp:
-            return send_icmp_unreach(nts, pkt);
+            return send_icmp_error(nts, pkt, ICMP_DEST_UNREACH, ICMP_NET_UNREACH);
 
         case nt_method_icmp_exceeded_icmp:
         case nt_method_icmp_exceeded_udp:
-            return send_icmp_exceeded(nts, pkt);      
+            return send_icmp_error(nts, pkt, ICMP_TIME_EXCEEDED, ICMP_EXC_TTL);      
     }
 
     return -1;
