@@ -10,11 +10,6 @@
 struct nt_spoof_context;
 struct nt_icmp_context;
 
-struct icmp_unreach;
-struct icmp_exceeded;
-struct spoof_udp;
-struct spoof_echo;
-
 // nat traversal method
 enum nt_method {
     nt_method_icmp_unreach_udp, 
