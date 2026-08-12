@@ -17,6 +17,7 @@ int init_nt_session(struct nt_session *nts, ...) {
     va_list ap;
     va_start(ap, nts);
 
+    nts->keepalive_pid = -1;
     switch (nts->method) {
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_exceeded_icmp: {
