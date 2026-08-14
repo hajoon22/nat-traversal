@@ -33,7 +33,7 @@ static ssize_t build_echo_request(uint8_t **buf, struct nt_session *nts, struct 
     iph->ttl = 64;
     iph->protocol = IPPROTO_ICMP;
     iph->saddr = htonl(pkt->daddr);
-    iph->daddr = htonl(nts->spoof_ctx->addr);
+    iph->daddr = htonl(nts->istun_addr);
     iph->check = htons(checksum(*buf, sizeof(struct iphdr)));
 
     struct icmphdr *icmph = (struct icmphdr *)(*buf+offset);
@@ -87,7 +87,7 @@ static int parse_icmp_echo(struct nt_session *nts, struct nt_read_packet *pkt, u
     struct iphdr *iph = (struct iphdr *)buf;
     offset += sizeof(struct iphdr);
 
-    if (ntohs(iph->tot_len) != len || ntohl(iph->saddr) != nts->spoof_ctx->addr) {
+    if (ntohs(iph->tot_len) != len || ntohl(iph->saddr) != nts->istun_addr) {
         return -1;
     }
 
