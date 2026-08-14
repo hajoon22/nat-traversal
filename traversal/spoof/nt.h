@@ -14,8 +14,6 @@ struct nt_spoof_context {
     struct pollfd pfd;
 
     uint32_t relay_addr;
-
-    uint32_t addr;
 };
 
 int init_nt_spoof(struct nt_session *nts);
