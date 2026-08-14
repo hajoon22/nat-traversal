@@ -13,9 +13,15 @@
 #include "spoof/udp/udp.h"
 #include "spoof/echo/echo.h"
 
+#include "common/local.h"
+
 int init_nt_session(struct nt_session *nts, ...) {
     va_list ap;
     va_start(ap, nts);
+
+    if (get_local_addr(&nts->local_addr) < 0) {
+        return -1;
+    }
 
     nts->keepalive_pid = -1;
     switch (nts->method) {
@@ -38,7 +44,8 @@ int init_nt_session(struct nt_session *nts, ...) {
 
             return init_nt_icmp(nts);
         }
-            
+
+        case nt_method_spoof_udp_local:        
         case nt_method_spoof_udp_direct:
         case nt_method_spoof_echo_reflection: {
             nts->spoof_ctx = calloc(1, sizeof(struct nt_spoof_context));
@@ -46,7 +53,9 @@ int init_nt_session(struct nt_session *nts, ...) {
                 return -1;
             }
 
-            nts->spoof_ctx->relay_addr = va_arg(ap, uint32_t);
+            if (nts->method != nt_method_spoof_udp_local) {
+                nts->spoof_ctx->relay_addr = va_arg(ap, uint32_t);
+            }
             
             return init_nt_spoof(nts);
         }
@@ -68,6 +77,7 @@ void deinit_nt_session(struct nt_session *nts) {
         case nt_method_icmp_exceeded_icmp:
             return deinit_nt_icmp_context(nts->icmp_ctx);
 
+        case nt_method_spoof_udp_local:
         case nt_method_spoof_udp_direct:
         case nt_method_spoof_echo_reflection:
             return deinit_nt_spoof_context(nts->spoof_ctx);
@@ -82,6 +92,7 @@ int nt_read(struct nt_session *nts, struct nt_read_packet *pkt) {
         case nt_method_icmp_exceeded_icmp:
             return nt_read_icmp(nts, pkt);
 
+        case nt_method_spoof_udp_local:
         case nt_method_spoof_udp_direct:
         case nt_method_spoof_echo_reflection:
             return nt_read_spoof(nts, pkt);
@@ -97,7 +108,8 @@ int nt_send(struct nt_session *nts, struct nt_send_packet *pkt) {
         case nt_method_icmp_unreach_icmp:
         case nt_method_icmp_exceeded_icmp:
             return nt_send_icmp(nts, pkt);
-
+ 
+        case nt_method_spoof_udp_local:
         case nt_method_spoof_udp_direct:
         case nt_method_spoof_echo_reflection:
             return nt_send_spoof(nts, pkt);
