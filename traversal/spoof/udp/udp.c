@@ -43,7 +43,7 @@ int read_spoof_udp(struct nt_session *nts, struct nt_read_packet *pkt) {
     return (int)r;
 }
 
-static ssize_t build_udp(struct nt_session *nts, struct nt_send_packet *pkt, uint8_t **buf) {
+static ssize_t build_udp(struct nt_session *nts, struct nt_send_packet *pkt, uint8_t **buf, uint32_t daddr, uint16_t dport) {
     size_t total_len = sizeof(struct iphdr)+sizeof(struct udphdr)+pkt->data_len;
 
     *buf = calloc(total_len+sizeof(struct udp_pseudo), sizeof(uint8_t));
@@ -62,7 +62,7 @@ static ssize_t build_udp(struct nt_session *nts, struct nt_send_packet *pkt, uin
     iph->ttl = 64;
     iph->protocol = IPPROTO_UDP;
     iph->saddr = htonl(nts->stun_addr);
-    iph->daddr = htonl(pkt->daddr);
+    iph->daddr = htonl(daddr);
     iph->check = htons(checksum(*buf, sizeof(struct iphdr)));
     
     // inner udp header
@@ -70,7 +70,7 @@ static ssize_t build_udp(struct nt_session *nts, struct nt_send_packet *pkt, uin
     offset += sizeof(struct udphdr);
 
     udph->source = htons(nts->stun_port);
-    udph->dest   = htons(pkt->dport);
+    udph->dest   = htons(dport);
     udph->len    = htons(sizeof(struct udphdr)+pkt->data_len);
 
     struct udp_pseudo *pseudo = (struct udp_pseudo *)(*buf+offset);
@@ -90,15 +90,33 @@ static ssize_t build_udp(struct nt_session *nts, struct nt_send_packet *pkt, uin
 
 int send_spoof_udp(struct nt_session *nts, struct nt_send_packet *pkt) {
     uint8_t *buf = NULL;
-    ssize_t len = build_udp(nts, pkt, &buf);
+    ssize_t len = build_udp(nts, pkt, &buf, pkt->daddr, pkt->dport);
     if (len < 0) {
         return (int)len;
     }
 
     int ret = send_ipip(
         nts->spoof_ctx->send_socket,
-        nts->pub_addr,
+        nts->local_addr,
         nts->spoof_ctx->relay_addr,
+        buf,
+        (size_t)len);
+    
+    free(buf);
+    return ret;
+}
+
+int send_spoof_udp_local(struct nt_session *nts, struct nt_send_packet *pkt) {
+    uint8_t *buf = NULL;
+    ssize_t len = build_udp(nts, pkt, &buf, pkt->dlocal, STUN_SRC_PORT);
+    if (len < 0) {
+        return (int)len;
+    }
+
+    int ret = send_ipip(
+        nts->spoof_ctx->send_socket,
+        nts->local_addr,
+        pkt->daddr,
         buf,
         (size_t)len);
     
