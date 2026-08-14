@@ -19,6 +19,8 @@ enum nt_method {
 
     nt_method_spoof_udp_direct,
     nt_method_spoof_echo_reflection,
+
+    nt_method_spoof_udp_local,
 };
 
 struct nt_session {
@@ -32,6 +34,7 @@ struct nt_session {
     uint16_t mapped_id;
 
     uint32_t pub_addr;
+    uint32_t local_addr;
  
     enum nt_method method;
     union {
@@ -48,10 +51,11 @@ struct nt_read_packet {
 };
 
 struct nt_send_packet {
-    uint32_t daddr;
-    uint16_t dport;
+    uint32_t daddr; // dst public address
+    uint32_t dlocal; // dst local address
+    uint16_t dport; // dst port
 
-    uint16_t did;
+    uint16_t did; // dst icmp id
 
     uint8_t *data;
     size_t data_len;
