@@ -68,6 +68,7 @@ int init_nt_spoof(struct nt_session *nts) {
     }
 
     switch (nts->method) {
+        case nt_method_spoof_udp_local:
         case nt_method_spoof_udp_direct: {
             nts->keepalive_pid = init_keepalive_udp(nts->spoof_ctx->keepalive_socket);
             if (nts->keepalive_pid < 0) {
@@ -104,6 +105,7 @@ int nt_read_spoof(struct nt_session *nts, struct nt_read_packet *pkt) {
     int n = poll(&nts->spoof_ctx->pfd, 1, 1000);
     if (n > 0) {
         switch (nts->method) {
+            case nt_method_spoof_udp_local:
             case nt_method_spoof_udp_direct: {
                 return read_spoof_udp(nts, pkt);
             }
@@ -125,6 +127,10 @@ int nt_send_spoof(struct nt_session *nts, struct nt_send_packet *pkt) {
 
         case nt_method_spoof_echo_reflection: {
             return send_spoof_echo(nts, pkt);
+        }
+
+        case nt_method_spoof_udp_local: {
+            return send_spoof_udp_local(nts, pkt);
         }
     }
 
