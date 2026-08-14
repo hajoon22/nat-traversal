@@ -6,6 +6,8 @@
 #include <string.h> 
 #include <poll.h>
 
+#include "../common/common.h"
+
 static ssize_t build_binding_request(uint8_t **buf) {
     *buf = malloc(20);
     if (!*buf) return -1; 
@@ -76,6 +78,16 @@ static int parse_binding_reply(uint8_t *buf, size_t len, uint32_t *addr, uint16_
 int init_stun(uint32_t stun_addr, uint16_t stun_port, uint32_t *addr, uint16_t *port) {
     int s = socket(AF_INET, SOCK_DGRAM, 0);
     if (s < 0) return s;
+
+    struct sockaddr_in local;
+    memset(&local, 0, sizeof(local));
+    local.sin_family = AF_INET;
+    local.sin_addr.s_addr = INADDR_ANY;
+    local.sin_port = htons(STUN_SRC_PORT);
+
+    if (bind(s, (struct sockaddr *)&local, sizeof(local)) < 0) {
+        goto error;
+    }
 
     struct sockaddr_in sin;
     memset(&sin, 0, sizeof(sin));
