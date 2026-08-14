@@ -1,4 +1,4 @@
-COMMON = traversal.o stun.o icmp.o icmp-nt.o checksum.o keepalive.o ipip.o spoofudp.o spoof-nt.o spoofecho.o istun.o
+COMMON = traversal.o stun.o icmp.o icmp-nt.o checksum.o keepalive.o ipip.o spoofudp.o spoof-nt.o spoofecho.o istun.o local.o
 
 example-icmp-unreach: example-unreach-client-udp.o example-unreach-server-udp.o example-unreach-client-icmp.o example-unreach-server-icmp.o $(COMMON)
 	gcc -o unreach-udp-client example-unreach-client-udp.o $(COMMON)
@@ -70,6 +70,8 @@ spoofecho.o: traversal/spoof/echo/echo.c traversal/spoof/echo/echo.h
 spoof-nt.o: traversal/spoof/nt.c traversal/spoof/nt.h
 	gcc -c traversal/spoof/nt.c -o spoof-nt.o
 
+local.o: traversal/common/local.c traversal/common/local.h
+	gcc -c traversal/common/local.c -o local.o
 checksum.o: traversal/common/checksum.c traversal/common/checksum.h
 	gcc -c traversal/common/checksum.c -o checksum.o
 keepalive.o: traversal/common/keepalive.c traversal/common/keepalive.h
