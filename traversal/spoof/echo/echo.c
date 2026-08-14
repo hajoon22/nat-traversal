@@ -10,6 +10,7 @@
 #include "../nt.h"
 #include "../../ipip/ipip.h"
 #include "../../traversal.h"
+#include "../../common/local.h"
 #include "../../common/common.h"
 #include "../../common/checksum.h"
 
@@ -58,7 +59,7 @@ static int send_spoof_echo_reflection(struct nt_session *nts, struct nt_send_pac
 
     int ret = send_ipip(
         nts->spoof_ctx->send_socket, 
-        nts->pub_addr, 
+        nts->local_addr, 
         nts->spoof_ctx->relay_addr, 
         buf, 
         (size_t)len);
