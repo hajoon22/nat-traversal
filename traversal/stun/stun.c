@@ -79,8 +79,7 @@ int init_stun(uint32_t stun_addr, uint16_t stun_port, uint32_t *addr, uint16_t *
     int s = socket(AF_INET, SOCK_DGRAM, 0);
     if (s < 0) return s;
 
-    struct sockaddr_in local;
-    memset(&local, 0, sizeof(local));
+    struct sockaddr_in local = {0};
     local.sin_family = AF_INET;
     local.sin_addr.s_addr = INADDR_ANY;
     local.sin_port = htons(STUN_SRC_PORT);
@@ -89,8 +88,7 @@ int init_stun(uint32_t stun_addr, uint16_t stun_port, uint32_t *addr, uint16_t *
         goto error;
     }
 
-    struct sockaddr_in sin;
-    memset(&sin, 0, sizeof(sin));
+    struct sockaddr_in sin = {0};
     sin.sin_family = AF_INET;
     sin.sin_port = htons(stun_port);
     sin.sin_addr.s_addr = htonl(stun_addr);
