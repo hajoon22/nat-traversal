@@ -13,21 +13,20 @@ GAPD-7500R (FW 1.03.10, 2026-02-13) Cone NAT
 
 int main(void) {
     struct nt_session nts;
-    nts.istun_addr = ntohl(inet_addr(""));
+    nts.istun_addr = ntohl(inet_addr("1.1.1.1"));
     nts.stun_addr = ntohl(inet_addr("74.125.250.129"));
+    nts.relay_addr = ntohl(inet_addr("127.0.0.1"));
     nts.stun_port = 19302;
     nts.method = nt_method_spoof_echo_reflection;
 
-    uint32_t relay_addr = ntohl(inet_addr(""));
-
-    if (init_nt_session(&nts, relay_addr) < 0) {
+    if (init_nt_session(&nts) < 0) {
         printf("init nt session error\n");
         return -1;
     }
 
     struct nt_send_packet spkt;
     spkt.did = 1111; // dst icmp id
-    spkt.daddr = ntohl(inet_addr("")); // dst
+    spkt.daddr = ntohl(inet_addr("1.1.1.1")); // dst
     spkt.data = "apple";
     spkt.data_len = 5;
 
