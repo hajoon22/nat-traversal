@@ -60,7 +60,7 @@ static int send_spoof_echo_reflection(struct nt_session *nts, struct nt_send_pac
     int ret = send_ipip(
         nts->spoof_ctx->send_socket, 
         nts->local_addr, 
-        nts->spoof_ctx->relay_addr, 
+        nts->relay_addr, 
         buf, 
         (size_t)len);
     free(buf);
@@ -113,6 +113,7 @@ static int parse_icmp_echo(struct nt_session *nts, struct nt_read_packet *pkt, u
 
     pkt->iph = calloc(1, sizeof(struct iphdr));
     if (!pkt->iph) {
+        free(pkt->data);
         return -1;
     }
 
