@@ -32,7 +32,7 @@ int main(void) {
             continue;
         }
 
-        printf("recived data: %.*s\n", (int)rpkt.data_len, (char *)rpkt.data);
+        printf("received data: %.*s\n", (int)rpkt.data_len, (char *)rpkt.data);
         deinit_nt_read_packet(&rpkt);
 
         break;
