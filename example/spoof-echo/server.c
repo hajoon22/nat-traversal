@@ -13,14 +13,13 @@ GAPD-7500R (FW 1.03.10, 2026-02-13) Cone NAT (Endpoint-Independent Mapping)
 
 int main(void) {
     struct nt_session nts;
-    nts.istun_addr = ntohl(inet_addr(""));
+    nts.istun_addr = ntohl(inet_addr("1.1.1.1"));
     nts.stun_addr = ntohl(inet_addr("74.125.250.129"));
+    nts.relay_addr = ntohl(inet_addr("127.0.0.1"));
     nts.stun_port = 19302;
     nts.method = nt_method_spoof_echo_reflection;
-    
-    uint32_t relay_addr = ntohl(inet_addr(""));
 
-    if (init_nt_session(&nts, relay_addr) < 0) {
+    if (init_nt_session(&nts) < 0) {
         printf("init nt session error\n");
         return -1;
     }
@@ -35,7 +34,7 @@ int main(void) {
             continue;
         }
 
-        printf("recived data: %.*s\n", (int)rpkt.data_len, (char *)rpkt.data);
+        printf("received data: %.*s\n", (int)rpkt.data_len, (char *)rpkt.data);
         deinit_nt_read_packet(&rpkt);
 
         break;
