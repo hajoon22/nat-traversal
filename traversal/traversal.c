@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
-#include <stdarg.h>
 
 #include "traversal.h"
 
@@ -15,10 +14,7 @@
 
 #include "common/local.h"
 
-int init_nt_session(struct nt_session *nts, ...) {
-    va_list ap;
-    va_start(ap, nts);
-
+int init_nt_session(struct nt_session *nts) {
     if (get_local_addr(&nts->local_addr) < 0) {
         return -1;
     }
@@ -51,10 +47,6 @@ int init_nt_session(struct nt_session *nts, ...) {
             nts->spoof_ctx = calloc(1, sizeof(struct nt_spoof_context));
             if (!nts->spoof_ctx) {
                 return -1;
-            }
-
-            if (nts->method != nt_method_spoof_udp_local) {
-                nts->spoof_ctx->relay_addr = va_arg(ap, uint32_t);
             }
             
             return init_nt_spoof(nts);
