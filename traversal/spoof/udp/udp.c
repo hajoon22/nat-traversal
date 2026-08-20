@@ -98,7 +98,7 @@ int send_spoof_udp(struct nt_session *nts, struct nt_send_packet *pkt) {
     int ret = send_ipip(
         nts->spoof_ctx->send_socket,
         nts->local_addr,
-        nts->spoof_ctx->relay_addr,
+        nts->relay_addr,
         buf,
         (size_t)len);
     
