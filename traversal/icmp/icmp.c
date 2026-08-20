@@ -123,6 +123,7 @@ static int parse_inner_udp(struct nt_session *nts, struct nt_read_packet *pkt, u
 
     pkt->data = calloc(pkt->data_len, sizeof(uint8_t));
     if (!pkt->data) {
+        free(pkt->iph);
         return -1;
     }
 
@@ -153,6 +154,7 @@ static int parse_inner_icmp(struct nt_session *nts, struct nt_read_packet *pkt, 
 
     pkt->data = calloc(pkt->data_len, sizeof(uint8_t));
     if (!pkt->data) {
+        free(pkt->iph);
         return -1;
     }
 
