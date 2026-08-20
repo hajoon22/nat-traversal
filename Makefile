@@ -28,13 +28,20 @@ example-exceeded-client-icmp.o: example/icmp-exceeded/icmp/client.c
 example-exceeded-server-icmp.o: example/icmp-exceeded/icmp/server.c
 	gcc -c example/icmp-exceeded/icmp/server.c -o example-exceeded-server-icmp.o
 
-example-spoof-udp: example-spoof-udp-server.o example-spoof-udp-client.o $(COMMON)
-	gcc -o spoof-udp-client example-spoof-udp-client.o $(COMMON)
-	gcc -o spoof-udp-server example-spoof-udp-server.o $(COMMON)
-example-spoof-udp-server.o: example/spoof-udp/server.c
-	gcc -c example/spoof-udp/server.c -o example-spoof-udp-server.o
-example-spoof-udp-client.o: example/spoof-udp/client.c
-	gcc -c example/spoof-udp/client.c -o example-spoof-udp-client.o
+example-spoof-udp: example-spoof-udp-direct-server.o example-spoof-udp-direct-client.o example-spoof-udp-local-server.o example-spoof-udp-local-client.o $(COMMON)
+	gcc -o spoof-udp-direct-client example-spoof-udp-direct-client.o $(COMMON)
+	gcc -o spoof-udp-direct-server example-spoof-udp-direct-server.o $(COMMON)
+	gcc -o spoof-udp-local-client example-spoof-udp-local-client.o $(COMMON)
+	gcc -o spoof-udp-local-server example-spoof-udp-local-server.o $(COMMON)
+example-spoof-udp-direct-server.o: example/spoof-udp/direct/server.c
+	gcc -c example/spoof-udp/direct/server.c -o example-spoof-udp-direct-server.o
+example-spoof-udp-direct-client.o: example/spoof-udp/direct/client.c
+	gcc -c example/spoof-udp/direct/client.c -o example-spoof-udp-direct-client.o
+example-spoof-udp-local-server.o: example/spoof-udp/local/server.c
+	gcc -c example/spoof-udp/local/server.c -o example-spoof-udp-local-server.o
+example-spoof-udp-local-client.o: example/spoof-udp/local/client.c
+	gcc -c example/spoof-udp/local/client.c -o example-spoof-udp-local-client.o
+
 
 example-spoof-echo: example-spoof-echo-server.o example-spoof-echo-client.o $(COMMON)
 	gcc -o spoof-echo-client example-spoof-echo-client.o $(COMMON)
@@ -80,7 +87,7 @@ keepalive.o: traversal/common/keepalive.c traversal/common/keepalive.h
 clean:
 	rm -rf *.o
 	rm -rf example-istun
-	rm -rf spoof-udp-client spoof-udp-server
+	rm -rf spoof-udp-direct-client spoof-udp-direct-server
 	rm -rf spoof-echo-client spoof-echo-server
 	rm -rf exceeded-udp-client exceeded-udp-server exceeded-icmp-client exceeded-icmp-server
 	rm -rf unreach-icmp-server unreach-icmp-client
