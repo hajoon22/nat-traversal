@@ -1,7 +1,7 @@
 #ifndef ISTUN_H
 #define ISTUN_H
 
-#define REPLY_SIZE sizeof(struct icmphdr)+sizeof(uint16_t)
+#define REPLY_SIZE (sizeof(struct icmphdr)+sizeof(uint16_t))
 
 #define ISTUN_REQUEST 2010
 #define ISTUN_REPLY 2222
