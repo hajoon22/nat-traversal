@@ -20,8 +20,13 @@
 
 void deinit_nt_spoof_context(struct nt_spoof_context *ctx) {
     close(ctx->read_socket);
-    close(ctx->send_socket);
-    close(ctx->keepalive_socket);
+    if (ctx->read_socket != ctx->send_socket) {
+        close(ctx->send_socket);
+    }
+
+    if (ctx->keepalive_socket != ctx->send_socket && ctx->keepalive_socket != ctx->read_socket) {
+        close(ctx->keepalive_socket);
+    }
 
     free(ctx);
 }
