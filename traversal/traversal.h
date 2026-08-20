@@ -14,18 +14,22 @@ struct nt_icmp_context;
 enum nt_method {
     nt_method_icmp_unreach_udp, 
     nt_method_icmp_unreach_icmp,
+    
     nt_method_icmp_exceeded_udp,
     nt_method_icmp_exceeded_icmp,
 
-    nt_method_spoof_udp_direct,
-    nt_method_spoof_echo_reflection,
-
     nt_method_spoof_udp_local,
+    nt_method_spoof_udp_direct,
+
+    //nt_method_spoof_echo_local,
+    nt_method_spoof_echo_reflection,
 };
 
 struct nt_session {
     int keepalive_pid;
     
+    uint32_t relay_addr;
+
     uint32_t stun_addr;
     uint16_t stun_port;
     uint16_t mapped_port;
@@ -61,7 +65,7 @@ struct nt_send_packet {
     size_t data_len;
 };
 
-int init_nt_session(struct nt_session *nts, ...);
+int init_nt_session(struct nt_session *nts);
 void deinit_nt_session(struct nt_session *nts);
 
 int nt_read(struct nt_session *nts, struct nt_read_packet *rpkt);
