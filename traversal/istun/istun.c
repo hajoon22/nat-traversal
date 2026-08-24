@@ -119,14 +119,17 @@ int send_istun_request(uint32_t istun_addr, uint16_t sid) {
         int r = poll(&pfd, 1, 10000);
         if (r > 0) {
             uint8_t buf[MAX_DATA_BUFFER];
-            int n = read(s, buf, MAX_DATA_BUFFER);
+            ssize_t n = read(s, buf, MAX_DATA_BUFFER);
+            if (n < 0) continue;
             
-            int ret = parse_istun_reply(istun_addr, buf, n);
+            int ret = parse_istun_reply(istun_addr, buf, (size_t)n);
             if (ret < 0) continue;
 
+            close(s);
             return ret;
         }
     }
 
+    close(s);
     return -1; // timeout
 }
