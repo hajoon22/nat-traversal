@@ -8,19 +8,14 @@
 
 #include "../common/common.h"
 
-static ssize_t build_binding_request(uint8_t **buf) {
-    *buf = malloc(20);
-    if (!*buf) return -1; 
-    
+static void build_binding_request(uint8_t buf[20]) {
     uint16_t type = htons(0x0001);
     uint32_t magic = htonl(0x2112A442); 
 
-    memcpy(*buf, &type, 2); // message type
-    memset(*buf+2, 0, 2); // message length
-    memcpy(*buf+4, &magic, 4); // magic cookie
-    memset(*buf+8, 0, 12); // transaction id (0)
-
-    return 20;
+    memcpy(buf, &type, 2); // message type
+    memset(buf+2, 0, 2); // message length
+    memcpy(buf+4, &magic, 4); // magic cookie
+    memset(buf+8, 0, 12); // transaction id (0)
 }
 
 static int parse_binding_reply(uint8_t *buf, size_t len, uint32_t *addr, uint16_t *port) {
@@ -97,15 +92,11 @@ int init_stun(uint32_t stun_addr, uint16_t stun_port, uint32_t *addr, uint16_t *
         goto error;
     }
 
-    uint8_t *buf = NULL;
-    ssize_t n = build_binding_request(&buf);
-    if (n < 0) goto error;
-    
-    if (send(s, buf, n, 0) < 0) {
-        free(buf);
+    uint8_t buf[20] = {0};
+    build_binding_request(buf);
+    if (send(s, buf, 20, 0) < 0) {
         goto error;   
     }
-    free(buf);
 
     struct pollfd pfd = {
         .fd = s,
@@ -115,20 +106,15 @@ int init_stun(uint32_t stun_addr, uint16_t stun_port, uint32_t *addr, uint16_t *
     // timeout: 10 sec
     int r = poll(&pfd, 1, 10000);
     if (r > 0) {
-        buf = malloc(1500);
-        if (!buf) goto error;
-
-        n = recv(s, buf, 1500, 0);
+        uint8_t buf[MAX_DATA_BUFFER] = {0};
+        ssize_t n = recv(s, buf, MAX_DATA_BUFFER, 0);
         if (n < 0) {
-            free(buf);
             goto error;
         }
 
         if (parse_binding_reply(buf, n, addr, port) < 0) {
-            free(buf);
             goto error;
         }
-        free(buf);
 
         return s;
     }
