@@ -1,4 +1,4 @@
-COMMON = traversal.o stun.o icmp.o icmp-nt.o checksum.o keepalive.o ipip.o spoofudp.o spoof-nt.o spoofecho.o istun.o local.o
+COMMON = traversal.o stun.o icmp.o icmp-nt.o checksum.o keepalive.o ipip.o spoofudp.o spoof-nt.o spoofecho.o istun.o local.o safe-proto.o
 
 example-icmp-unreach: example-unreach-client-udp.o example-unreach-server-udp.o example-unreach-client-icmp.o example-unreach-server-icmp.o $(COMMON)
 	gcc -o unreach-udp-client example-unreach-client-udp.o $(COMMON)
@@ -57,6 +57,16 @@ example-istun: example-istun.o $(COMMON)
 example-istun.o: example/istun/istun.c
 	gcc -c example/istun/istun.c -o example-istun.o
 
+example-protocol: example-protocol-server.o example-protocol-client.o $(COMMON)
+	gcc -o example-protocol-server example-protocol-server.o $(COMMON)
+	gcc -o example-protocol-client example-protocol-client.o $(COMMON)
+	
+example-protocol-server.o: example/protocol/server.c $(COMMON)
+	gcc -c example/protocol/server.c -o example-protocol-server.o 
+example-protocol-client.o: example/protocol/client.c $(COMMON)
+	gcc -c example/protocol/client.c -o example-protocol-client.o 
+
+
 traversal.o: traversal/traversal.c traversal/traversal.h
 	gcc -c traversal/traversal.c -o traversal.o
 stun.o: traversal/stun/stun.c traversal/stun/stun.h
@@ -83,6 +93,9 @@ checksum.o: traversal/common/checksum.c traversal/common/checksum.h
 	gcc -c traversal/common/checksum.c -o checksum.o
 keepalive.o: traversal/common/keepalive.c traversal/common/keepalive.h
 	gcc -c traversal/common/keepalive.c -o keepalive.o
+
+safe-proto.o: traversal/safe_proto/protocol.c traversal/safe_proto/protocol.h
+	gcc -c traversal/safe_proto/protocol.c -o safe-proto.o
 
 clean:
 	rm -rf *.o
