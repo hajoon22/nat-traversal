@@ -17,6 +17,16 @@ struct read_session {
 
 struct read_session sessions[MAX_SESSIONS];
 
+static void clean_read_session(int i) {
+    sessions[i].id = 0;
+    if (sessions[i].buffer != NULL) {
+        free(sessions[i].buffer);
+        sessions[i].buffer = NULL;
+    }
+    sessions[i].data_length = 0;
+    sessions[i].next_offset = 0;
+}
+
 static int find_free_index() {
     for (int i = 0; i < MAX_SESSIONS; i++) {
         if (sessions[i].id == 0) {
@@ -58,6 +68,8 @@ static void parse_handshake_request(uint8_t *buf, size_t length) {
 
     int i = find_free_index();
     if (i < 0) return;
+
+    clean_read_session(i);
 
     uint16_t data_size = 0;
     memcpy(&data_size, buf+5, sizeof(data_size));
@@ -119,12 +131,11 @@ static int parse_data_packet(uint8_t *buf, size_t length) {
     uint16_t data_size = 0;
     memcpy(&data_size, buf+7, sizeof(data_size));
     data_size = ntohs(data_size);
+    if ((size_t)data_size > length-9) return -1;
+    if ((size_t)offset+data_size > sessions[i].data_length) return -1;
+    
 
-    if ((size_t)offset + data_size > sessions[i].data_length) {
-        return -1;
-    }
-
-    sessions[i].next_offset = offset + data_size;
+    sessions[i].next_offset = offset+data_size;
     memcpy(sessions[i].buffer+offset, buf+9, data_size);
 
     if (sessions[i].next_offset == sessions[i].data_length) {
@@ -208,13 +219,13 @@ ssize_t nt_proto_read_safe(struct nt_session *nts, uint8_t **buf) {
 
     size_t length = (size_t)sessions[i].data_length;
     *buf = calloc(length, sizeof(uint8_t));
-    if (!*buf) return -1;
+    if (!*buf) {
+        clean_read_session(i);
+        return -1;
+    }
 
     memcpy(*buf, sessions[i].buffer, length);
 
-    sessions[i].id = 0;
-    free(sessions[i].buffer);
-    sessions[i].buffer = NULL;
-
+    clean_read_session(i);
     return length;
 }
