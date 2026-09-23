@@ -52,6 +52,7 @@ static int listen_istun(int s) {
     }
 
     close(s);
+    return 0;
 }
 
 int init_istun() {
